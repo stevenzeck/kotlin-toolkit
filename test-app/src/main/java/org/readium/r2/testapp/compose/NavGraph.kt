@@ -58,6 +58,7 @@ fun NavGraph(
                 }
             )) { backStackEntry ->
             CatalogDetailScreen(
+                updateTopBarState = { appState.topBarState = it },
                 catalogId = backStackEntry.arguments?.getLong(CATALOG_DETAIL_KEY)
             )
         }

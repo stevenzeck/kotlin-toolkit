@@ -122,6 +122,7 @@ class ReaderRepository(
             null, is DummyReaderInitData -> {
                 // Do nothing
             }
+            else -> {}
         }
     }
 }

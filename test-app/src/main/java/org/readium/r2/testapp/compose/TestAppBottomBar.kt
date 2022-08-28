@@ -9,6 +9,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import org.readium.r2.testapp.R
+
 
 @ExperimentalMaterial3Api
 @Composable
@@ -52,13 +54,13 @@ enum class BottomNavTabs(
 ) {
     BOOKSHELF(
         R.string.title_bookshelf,
-        R.drawable.ic_local_library_black_24dp,
+        R.drawable.baseline_local_library_24,
         TestAppDestinations.BOOKSHELF
     ),
     CATALOG(
         R.string.title_catalogs,
-        R.drawable.ic_dashboard_black_24dp,
+        R.drawable.baseline_dashboard_24,
         TestAppDestinations.CATALOG
     ),
-    ABOUT(R.string.title_about, R.drawable.ic_info_black_24dp, TestAppDestinations.ABOUT)
+    ABOUT(R.string.title_about, R.drawable.baseline_info_24, TestAppDestinations.ABOUT)
 }

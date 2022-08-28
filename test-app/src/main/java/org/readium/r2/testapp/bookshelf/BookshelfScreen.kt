@@ -34,6 +34,12 @@ fun BookshelfScreen(updateTopBarState: (TopBarState) -> Unit, viewModel: Bookshe
 //    val selectedBook = remember { mutableStateOf(Book()) }
     val activity = LocalContext.current as Activity
 
+    updateTopBarState(
+        TopBarState(
+            title = stringResource(id = R.string.title_bookshelf),
+        )
+    )
+
     when (uiState) {
         is BookshelfViewModel.BookshelfUiState.HasBooks -> BookshelfList(
             context = context,

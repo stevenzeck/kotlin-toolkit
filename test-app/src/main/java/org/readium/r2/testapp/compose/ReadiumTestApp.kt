@@ -1,20 +1,24 @@
 package org.readium.r2.testapp.compose
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import org.readium.r2.testapp.R
 
 @ExperimentalMaterial3Api
 @ExperimentalFoundationApi
 @Composable
 fun ReadiumTestApp() {
 
-        MaterialTheme {
+        TestAppTheme {
 
             val appState = rememberTestAppState()
 
@@ -22,7 +26,7 @@ fun ReadiumTestApp() {
                 topBar = {
                     SmallTopAppBar(
                         title = {
-                            Text(text = appState.topBarState.title)
+                            appState.topBarState.title?.let { Text(text = it) }
                         },
                         navigationIcon = {
                             if (appState.showBackButton) {
@@ -62,9 +66,11 @@ fun ReadiumTestApp() {
                     )
                 }
             ) {
-                NavGraph(
-                    appState = appState
-                )
+                Box(modifier = Modifier.padding(it)) {
+                    NavGraph(
+                        appState = appState
+                    )
+                }
             }
         }
 

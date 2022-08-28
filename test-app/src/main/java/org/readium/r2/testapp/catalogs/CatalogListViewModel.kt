@@ -1,4 +1,4 @@
-package org.readium.r2.testapp.compose
+package org.readium.r2.testapp.catalogs
 
 import android.app.Application
 import androidx.datastore.preferences.core.edit
@@ -13,7 +13,7 @@ import org.readium.r2.testapp.db.DataStorePrefs
 import org.readium.r2.testapp.domain.model.Catalog
 import org.readium.r2.testapp.utils.Result
 
-class CatalogListViewModel(application: Application): AndroidViewModel(application) {
+class CatalogListViewModel(application: Application) : AndroidViewModel(application) {
 
     private val catalogDao = BookDatabase.getDatabase(application).catalogDao()
     private val repository = CatalogRepository(catalogDao)
@@ -34,9 +34,9 @@ class CatalogListViewModel(application: Application): AndroidViewModel(applicati
     init {
         runBlocking {
             val datastore = DataStorePrefs.getDataStorePrefs(application)
-            val storedVersion = datastore?.data?.first()?.get(VERSION_KEY) ?: 0
+            val storedVersion = datastore.data.first()[VERSION_KEY] ?: 0
             if (storedVersion < version) {
-                datastore?.edit {
+                datastore.edit {
                     it[VERSION_KEY] = version
                 }
                 val oPDS2Catalog = Catalog(
@@ -49,15 +49,9 @@ class CatalogListViewModel(application: Application): AndroidViewModel(applicati
                     href = "http://open.minitex.org/textbooks/",
                     type = 1
                 )
-                val sEBCatalog = Catalog(
-                    title = "Standard eBooks Catalog",
-                    href = "https://standardebooks.org/opds/all",
-                    type = 1
-                )
 
                 insertCatalog(oPDS2Catalog)
                 insertCatalog(oTBCatalog)
-                insertCatalog(sEBCatalog)
             }
         }
         fetchCatalogs()

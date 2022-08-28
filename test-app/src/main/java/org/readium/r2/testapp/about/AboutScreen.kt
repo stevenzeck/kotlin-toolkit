@@ -8,14 +8,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.readium.r2.testapp.R
 import org.readium.r2.testapp.compose.TopBarState
 
 @Composable
-fun AboutScreen(updateTopBarState: (TopBarState) -> Unit,) {
+fun AboutScreen(updateTopBarState: (TopBarState) -> Unit) {
+
+    updateTopBarState(
+        TopBarState(
+            title = stringResource(id = R.string.title_about),
+        )
+    )
+
     Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(15.dp)) {
         SectionHeading(stringResource(id = R.string.app_version_header))
         Row(horizontalArrangement = Arrangement.spacedBy(50.dp)) {

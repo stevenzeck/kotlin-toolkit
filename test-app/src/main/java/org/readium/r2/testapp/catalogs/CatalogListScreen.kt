@@ -9,14 +9,28 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import org.readium.r2.testapp.R
 import org.readium.r2.testapp.bookshelf.Loading
+import org.readium.r2.testapp.catalogs.CatalogListUiState
+import org.readium.r2.testapp.catalogs.CatalogListViewModel
 
 @Composable
-fun CatalogListScreen(updateTopBarState: (TopBarState) -> Unit, viewModel: CatalogListViewModel = viewModel(), onCatalogSelected: (Long) -> Unit) {
+fun CatalogListScreen(
+    updateTopBarState: (TopBarState) -> Unit,
+    viewModel: CatalogListViewModel = viewModel(),
+    onCatalogSelected: (Long) -> Unit
+) {
     val listState = rememberLazyListState()
     val uiState by viewModel.uiState.collectAsState()
+
+    updateTopBarState(
+        TopBarState(
+            title = stringResource(id = R.string.title_catalogs),
+        )
+    )
 
     when (uiState) {
         is CatalogListUiState.HasCatalogs -> {

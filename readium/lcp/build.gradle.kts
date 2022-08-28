@@ -77,7 +77,7 @@ dependencies {
     implementation("androidx.browser:browser:1.4.0")
 
     // Room database
-    val roomVersion = "2.4.2"
+    val roomVersion = "2.4.3"
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
     kapt("androidx.room:room-compiler:$roomVersion")
