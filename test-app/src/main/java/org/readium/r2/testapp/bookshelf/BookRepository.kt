@@ -19,10 +19,20 @@ import org.readium.r2.testapp.domain.model.Book
 import org.readium.r2.testapp.domain.model.Bookmark
 import org.readium.r2.testapp.domain.model.Highlight
 import org.readium.r2.testapp.utils.extensions.authorName
+import org.readium.r2.testapp.utils.Result
 
 class BookRepository(private val booksDao: BooksDao) {
 
     fun books(): LiveData<List<Book>> = booksDao.getAllBooks()
+
+    suspend fun retrieveBooks(): Result<List<Book>> {
+        val books = booksDao.retrieveBooks()
+        return if (books != null) {
+            Result.Success(books)
+        } else {
+            Result.Error(IllegalArgumentException("Unable to fetch books"))
+        }
+    }
 
     suspend fun get(id: Long) = booksDao.get(id)
 

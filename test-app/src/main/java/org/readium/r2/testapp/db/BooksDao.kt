@@ -49,6 +49,9 @@ interface BooksDao {
     @Query("SELECT * FROM " + Book.TABLE_NAME + " ORDER BY " + Book.CREATION_DATE + " desc")
     fun getAllBooks(): LiveData<List<Book>>
 
+    @Query("SELECT * FROM " + Book.TABLE_NAME + " ORDER BY " + Book.CREATION_DATE + " desc")
+    suspend fun retrieveBooks(): List<Book>?
+
     /**
      * Retrieve all bookmarks for a specific book
      * @param bookId The ID of the book

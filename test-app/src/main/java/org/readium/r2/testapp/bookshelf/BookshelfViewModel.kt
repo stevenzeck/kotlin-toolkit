@@ -16,6 +16,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.readium.r2.shared.UserException
@@ -38,6 +39,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.net.HttpURLConnection
+import org.readium.r2.testapp.utils.Result
 import java.net.URL
 import java.util.*
 import kotlin.time.ExperimentalTime
@@ -230,5 +232,70 @@ class BookshelfViewModel(application: Application) : AndroidViewModel(applicatio
         class OpenBookError(val errorMessage: String?) : Event()
 
         class LaunchReader(val arguments: ReaderActivityContract.Arguments) : Event()
+    }
+
+
+    private val viewModelState = MutableStateFlow(BookshelfViewModelState(isLoading = true))
+
+    val uiState = viewModelState
+        .map { it.toUiState() }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            viewModelState.value.toUiState()
+        )
+
+    private fun fetchBooks() {
+        viewModelState.update { it.copy(isLoading = true) }
+        viewModelScope.launch {
+            val books = app.bookRepository.retrieveBooks()
+            viewModelState.update {
+                when (books) {
+                    is Result.Success -> it.copy(books = books.data, isLoading = false)
+                    else -> {
+                        val errorMessages = it.errorMessages
+                        it.copy(errorMessages = errorMessages, isLoading = false)
+                    }
+                }
+            }
+        }
+    }
+
+    sealed interface BookshelfUiState {
+
+        val isLoading: Boolean
+        val errorMessages: List<String>
+
+        data class NoBooks(
+            override val isLoading: Boolean,
+            override val errorMessages: List<String>,
+        ) : BookshelfUiState
+
+        data class HasBooks(
+            val books: List<Book>,
+            override val isLoading: Boolean,
+            override val errorMessages: List<String>,
+        ) : BookshelfUiState
+    }
+
+    private data class BookshelfViewModelState(
+        val books: List<Book> = emptyList(),
+        val isLoading: Boolean = false,
+        val errorMessages: List<String> = emptyList(),
+    ) {
+
+        fun toUiState(): BookshelfUiState =
+            if (books.isEmpty()) {
+                BookshelfUiState.NoBooks(
+                    isLoading = isLoading,
+                    errorMessages = errorMessages,
+                )
+            } else {
+                BookshelfUiState.HasBooks(
+                    books = books,
+                    isLoading = isLoading,
+                    errorMessages = errorMessages,
+                )
+            }
     }
 }
