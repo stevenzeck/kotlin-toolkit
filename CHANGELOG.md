@@ -1,5 +1,7 @@
 # Changelog
 
+Test
+
 All notable changes to this project will be documented in this file. Take a look at [the migration guide](docs/migration-guide.md) to upgrade between two major versions.
 
 **Warning:** Features marked as *experimental* may change or be removed in a future release without notice. Use with caution.
