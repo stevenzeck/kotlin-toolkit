@@ -15,7 +15,11 @@ import org.readium.r2.lcp.license.model.LicenseDocument
 
 internal class PassphrasesService(private val repository: PassphrasesRepository) {
 
-    suspend fun request(license: LicenseDocument, authentication: LcpAuthenticating?, allowUserInteraction: Boolean, sender: Any?): String? {
+    suspend fun request(
+        license: LicenseDocument,
+        authentication: LcpAuthenticating?,
+        allowUserInteraction: Boolean
+    ): String? {
         val candidates = this@PassphrasesService.possiblePassphrasesFromRepository(license)
         val passphrase = try {
             LcpClient.findOneValidPassphrase(license.json.toString(), candidates)
@@ -24,14 +28,28 @@ internal class PassphrasesService(private val repository: PassphrasesRepository)
         }
         return when {
             passphrase != null -> passphrase
-            authentication != null -> this@PassphrasesService.authenticate(license, LcpAuthenticating.AuthenticationReason.PassphraseNotFound, authentication, allowUserInteraction, sender)
+            authentication != null -> this@PassphrasesService.authenticate(
+                license,
+                LcpAuthenticating.AuthenticationReason.PassphraseNotFound,
+                authentication,
+                allowUserInteraction
+            )
             else -> null
         }
     }
 
-    private suspend fun authenticate(license: LicenseDocument, reason: LcpAuthenticating.AuthenticationReason, authentication: LcpAuthenticating, allowUserInteraction: Boolean, sender:Any?): String? {
+    private suspend fun authenticate(
+        license: LicenseDocument,
+        reason: LcpAuthenticating.AuthenticationReason,
+        authentication: LcpAuthenticating,
+        allowUserInteraction: Boolean
+    ): String? {
         val authenticatedLicense = LcpAuthenticating.AuthenticatedLicense(document = license)
-        val clearPassphrase = authentication.retrievePassphrase(authenticatedLicense, reason, allowUserInteraction, sender)
+        val clearPassphrase = authentication.retrievePassphrase(
+            authenticatedLicense,
+            reason,
+            allowUserInteraction
+        )
             ?: return null
         val hashedPassphrase = HASH.sha256(clearPassphrase)
         val passphrases = mutableListOf(hashedPassphrase)
@@ -46,7 +64,12 @@ internal class PassphrasesService(private val repository: PassphrasesRepository)
             addPassphrase(passphrase, true, license.id, license.provider, license.user.id)
             passphrase
         } catch (e: Exception) {
-            authenticate(license, LcpAuthenticating.AuthenticationReason.InvalidPassphrase, authentication, allowUserInteraction, sender)
+            authenticate(
+                license,
+                LcpAuthenticating.AuthenticationReason.InvalidPassphrase,
+                authentication,
+                allowUserInteraction
+            )
         }
     }
 
@@ -79,5 +102,4 @@ internal class PassphrasesService(private val repository: PassphrasesRepository)
     companion object {
         private val sha256Regex = "^([a-f0-9]{64})$".toRegex(RegexOption.IGNORE_CASE)
     }
-
 }

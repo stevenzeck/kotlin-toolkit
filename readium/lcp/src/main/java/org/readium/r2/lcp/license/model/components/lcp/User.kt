@@ -12,21 +12,21 @@ package org.readium.r2.lcp.license.model.components.lcp
 
 import org.json.JSONObject
 
-data class User(val json: JSONObject) {
+public data class User(val json: JSONObject) {
     val id: String?
     val email: String?
     val name: String?
     var extensions: JSONObject
-    var encrypted = mutableListOf<String>()
+    var encrypted: MutableList<String> = mutableListOf<String>()
 
     init {
-        id = if (json.has("id")) json.getString("id") else  null
-        email = if (json.has("email")) json.getString("email") else  null
-        name = if (json.has("name")) json.getString("name") else  null
+        id = if (json.has("id")) json.getString("id") else null
+        email = if (json.has("email")) json.getString("email") else null
+        name = if (json.has("name")) json.getString("name") else null
 
         if (json.has("encrypted")) {
             val encryptedArray = json.getJSONArray("encrypted")
-            for (i in 0 until encryptedArray.length()){
+            for (i in 0 until encryptedArray.length()) {
                 encrypted.add(encryptedArray.getString(i))
             }
         }
@@ -37,6 +37,5 @@ data class User(val json: JSONObject) {
 //        json.remove("encrypted")
 
         extensions = json
-
     }
 }

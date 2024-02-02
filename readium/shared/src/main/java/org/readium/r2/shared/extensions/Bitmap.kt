@@ -11,18 +11,19 @@ package org.readium.r2.shared.extensions
 
 import android.graphics.Bitmap
 import android.util.Size
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import kotlin.math.min
-
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.readium.r2.shared.InternalReadiumApi
 
 /**
  * Resizes a bitmap to fit [maxSize] with bilinear filtering.
  */
 internal fun Bitmap.scaleToFit(maxSize: Size): Bitmap {
-    if (width <= maxSize.width && height <= maxSize.height)
+    if (width <= maxSize.width && height <= maxSize.height) {
         return this
+    }
 
     val ratio = min(
         maxSize.width / width.toFloat(),
@@ -37,9 +38,10 @@ internal fun Bitmap.scaleToFit(maxSize: Size): Bitmap {
 
 internal val Bitmap.size get() = Size(width, height)
 
-suspend fun Bitmap.toPng(quality: Int = 100): ByteArray? = withContext(Dispatchers.Default) {
+@InternalReadiumApi
+public suspend fun Bitmap.toPng(quality: Int = 100): ByteArray? = withContext(Dispatchers.Default) {
     val stream = ByteArrayOutputStream()
-    compress(Bitmap.CompressFormat.PNG, quality, stream).let{
+    compress(Bitmap.CompressFormat.PNG, quality, stream).let {
         if (it) stream.toByteArray() else null
     }
 }

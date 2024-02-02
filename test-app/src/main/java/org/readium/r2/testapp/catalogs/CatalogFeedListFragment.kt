@@ -23,10 +23,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import org.readium.r2.testapp.R
+import org.readium.r2.testapp.data.model.Catalog
 import org.readium.r2.testapp.databinding.FragmentCatalogFeedListBinding
-import org.readium.r2.testapp.domain.model.Catalog
 import org.readium.r2.testapp.utils.viewLifecycle
-
 
 class CatalogFeedListFragment : Fragment() {
 
@@ -71,7 +70,6 @@ class CatalogFeedListFragment : Fragment() {
         val VERSION_KEY = "OPDS_CATALOG_VERSION"
 
         if (preferences.getInt(VERSION_KEY, 0) < version) {
-
             preferences.edit().putInt(VERSION_KEY, version).apply()
 
             val oPDS2Catalog = Catalog(
@@ -121,7 +119,9 @@ class CatalogFeedListFragment : Fragment() {
     private fun handleEvent(event: CatalogFeedListViewModel.Event) {
         val message =
             when (event) {
-                is CatalogFeedListViewModel.Event.FeedListEvent.CatalogParseFailed -> getString(R.string.catalog_parse_error)
+                is CatalogFeedListViewModel.Event.FeedListEvent.CatalogParseFailed -> getString(
+                    R.string.catalog_parse_error
+                )
             }
         Snackbar.make(
             requireView(),
@@ -152,7 +152,9 @@ class CatalogFeedListFragment : Fragment() {
         RecyclerView.ItemDecoration() {
 
         override fun getItemOffsets(
-            outRect: Rect, view: View, parent: RecyclerView,
+            outRect: Rect,
+            view: View,
+            parent: RecyclerView,
             state: RecyclerView.State
         ) {
             outRect.bottom = verticalSpaceHeight

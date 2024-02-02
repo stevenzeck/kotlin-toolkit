@@ -4,6 +4,8 @@
  * available in the top-level LICENSE file of the project.
  */
 
+@file:Suppress("DEPRECATION")
+
 package org.readium.navigator.media2
 
 import android.app.PendingIntent
@@ -13,6 +15,12 @@ import androidx.media2.common.MediaMetadata
 import androidx.media2.common.SessionPlayer
 import androidx.media2.session.MediaSession
 import com.google.common.util.concurrent.SettableFuture
+import java.util.concurrent.*
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.channels.ReceiveChannel
@@ -23,12 +31,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import org.readium.r2.shared.util.Try
 import org.readium.r2.shared.util.flatMap
 import timber.log.Timber
-import java.util.concurrent.*
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.ExperimentalTime
 
 /**
  * This class's purpose is two-fold:
@@ -44,7 +46,7 @@ import kotlin.time.ExperimentalTime
 internal class SessionPlayerFacade(
     private val sessionPlayer: SessionPlayer,
     private val seekCompletedReceiver: ReceiveChannel<Long>,
-    playerStateFlow: Flow<SessionPlayerState>,
+    playerStateFlow: Flow<SessionPlayerState>
 ) {
     private val coroutineScope = MainScope()
 

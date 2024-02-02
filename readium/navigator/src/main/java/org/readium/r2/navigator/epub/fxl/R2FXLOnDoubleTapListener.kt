@@ -9,7 +9,7 @@
 
 package org.readium.r2.navigator.epub.fxl
 
-class R2FXLOnDoubleTapListener(private var threeStep: Boolean) : R2FXLLayout.OnDoubleTapListener {
+internal class R2FXLOnDoubleTapListener(private var threeStep: Boolean) : R2FXLLayout.OnDoubleTapListener {
 
     override fun onDoubleTap(view: R2FXLLayout, info: R2FXLLayout.TapInfo): Boolean {
         try {
@@ -44,5 +44,4 @@ class R2FXLOnDoubleTapListener(private var threeStep: Boolean) : R2FXLLayout.OnD
             view.setScale(view.minScale, true)
         }
     }
-
 }

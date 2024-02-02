@@ -12,22 +12,24 @@ import android.icu.text.RuleBasedCollator
 import android.icu.text.StringSearch
 import android.os.Build
 import androidx.annotation.RequiresApi
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import org.readium.r2.shared.Search
-import org.readium.r2.shared.fetcher.DefaultResourceContentExtractorFactory
-import org.readium.r2.shared.fetcher.ResourceContentExtractor
-import org.readium.r2.shared.publication.Link
-import org.readium.r2.shared.publication.Locator
-import org.readium.r2.shared.publication.LocatorCollection
-import org.readium.r2.shared.publication.Publication
-import org.readium.r2.shared.publication.services.positionsByReadingOrder
-import org.readium.r2.shared.publication.services.search.SearchService.Options
-import org.readium.r2.shared.util.Ref
-import org.readium.r2.shared.util.Try
-import timber.log.Timber
 import java.text.StringCharacterIterator
 import java.util.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.readium.r2.shared.ExperimentalReadiumApi
+import org.readium.r2.shared.publication.*
+import org.readium.r2.shared.publication.services.positionsByReadingOrder
+import org.readium.r2.shared.publication.services.search.SearchService.Options
+import org.readium.r2.shared.util.ThrowableError
+import org.readium.r2.shared.util.Try
+import org.readium.r2.shared.util.Url
+import org.readium.r2.shared.util.data.Container
+import org.readium.r2.shared.util.getOrElse
+import org.readium.r2.shared.util.resource.Resource
+import org.readium.r2.shared.util.resource.content.DefaultResourceContentExtractorFactory
+import org.readium.r2.shared.util.resource.content.ResourceContentExtractor
+import timber.log.Timber
 
 /**
  * Base implementation of [SearchService] iterating through the content of Publication's
@@ -39,24 +41,28 @@ import java.util.*
  *
  * The actual search is implemented by the provided [searchAlgorithm].
  */
-@Search
-class StringSearchService(
-    private val publication: Ref<Publication>,
-    val language: String?,
+@ExperimentalReadiumApi
+public class StringSearchService(
+    private val manifest: Manifest,
+    private val container: Container<Resource>,
+    private val services: PublicationServicesHolder,
+    private val language: String?,
     private val snippetLength: Int,
     private val searchAlgorithm: Algorithm,
-    private val extractorFactory: ResourceContentExtractor.Factory,
+    private val extractorFactory: ResourceContentExtractor.Factory
 ) : SearchService {
 
-    companion object {
-        fun createDefaultFactory(
+    public companion object {
+        public fun createDefaultFactory(
             snippetLength: Int = 200,
             searchAlgorithm: Algorithm? = null,
-            extractorFactory: ResourceContentExtractor.Factory = DefaultResourceContentExtractorFactory(),
+            extractorFactory: ResourceContentExtractor.Factory = DefaultResourceContentExtractorFactory()
         ): (Publication.Service.Context) -> StringSearchService =
             { context ->
                 StringSearchService(
-                    publication = context.publication,
+                    manifest = context.manifest,
+                    container = context.container,
+                    services = context.services,
                     language = context.manifest.metadata.languages.firstOrNull(),
                     snippetLength = snippetLength,
                     searchAlgorithm = searchAlgorithm
@@ -71,20 +77,22 @@ class StringSearchService(
     override val options: Options = searchAlgorithm.options
         .copy(language = locale.toLanguageTag())
 
-    override suspend fun search(query: String, options: Options?): SearchTry<SearchIterator> =
-        try {
-            Try.success(Iterator(
-                publication = publication() ?: throw IllegalStateException("No Publication object"),
-                query = query,
-                options = options ?: Options(),
-                locale = options?.language?.let { Locale.forLanguageTag(it) } ?: locale,
-            ))
+    override suspend fun search(query: String, options: Options?): SearchIterator =
+        Iterator(
+            manifest = manifest,
+            container = container,
+            query = query,
+            options = options ?: Options(),
+            locale = options?.language?.let { Locale.forLanguageTag(it) } ?: locale
+        )
 
-        } catch (e: Exception) {
-            Try.failure(SearchException.wrap(e))
-        }
-
-    private inner class Iterator(val publication: Publication, val query: String, val options: Options, val locale: Locale) : SearchIterator {
+    private inner class Iterator(
+        val manifest: Manifest,
+        val container: Container<Resource>,
+        val query: String,
+        val options: Options,
+        val locale: Locale
+    ) : SearchIterator {
 
         override var resultCount: Int = 0
             private set
@@ -96,16 +104,19 @@ class StringSearchService(
 
         override suspend fun next(): SearchTry<LocatorCollection?> {
             try {
-                if (index >= publication.readingOrder.count() - 1) {
+                if (index >= manifest.readingOrder.count() - 1) {
                     return Try.success(null)
                 }
 
                 index += 1
 
-                val link = publication.readingOrder[index]
-                val resource = publication.get(link)
+                val link = manifest.readingOrder[index]
+                val mediaType = link.mediaType ?: return next()
+                val text =
+                    container[link.url()]
+                        ?.let { extractorFactory.createExtractor(it, mediaType)?.extractText(it) }
+                        ?.getOrElse { return Try.failure(SearchError.Reading(it)) }
 
-                val text = extractorFactory.createExtractor(resource)?.extractText(resource)?.getOrThrow()
                 if (text == null) {
                     Timber.w("Cannot extract text from resource: ${link.href}")
                     return next()
@@ -121,23 +132,32 @@ class StringSearchService(
                 }
 
                 return Try.success(LocatorCollection(locators = locators))
-
+            } catch (
+                e: CancellationException
+            ) {
+                throw e
             } catch (e: Exception) {
-                return Try.failure(SearchException.wrap(e))
+                return Try.failure(SearchError.Engine(ThrowableError(e)))
             }
         }
 
         private suspend fun findLocators(resourceIndex: Int, link: Link, text: String): List<Locator> {
-            if (text == "")
+            if (text == "") {
                 return emptyList()
+            }
 
-            val resourceTitle = publication.tableOfContents.titleMatching(link.href)
-            var resourceLocator = publication.locatorFromLink(link) ?: return emptyList()
+            val resourceTitle = manifest.tableOfContents.titleMatching(link.url())
+            var resourceLocator = manifest.locatorFromLink(link) ?: return emptyList()
             resourceLocator = resourceLocator.copy(title = resourceTitle ?: resourceLocator.title)
             val locators = mutableListOf<Locator>()
 
             withContext(Dispatchers.IO) {
-                for (range in searchAlgorithm.findRanges(query = query, options = options, text = text, locale = locale)) {
+                for (range in searchAlgorithm.findRanges(
+                    query = query,
+                    options = options,
+                    text = text,
+                    locale = locale
+                )) {
                     locators.add(createLocator(resourceIndex, resourceLocator, text, range))
                 }
             }
@@ -145,7 +165,12 @@ class StringSearchService(
             return locators
         }
 
-        private suspend fun createLocator(resourceIndex: Int, resourceLocator: Locator, text: String, range: IntRange): Locator {
+        private suspend fun createLocator(
+            resourceIndex: Int,
+            resourceLocator: Locator,
+            text: String,
+            range: IntRange
+        ): Locator {
             val progression = range.first.toDouble() / text.length.toDouble()
 
             var totalProgression: Double? = null
@@ -159,9 +184,9 @@ class StringSearchService(
             return resourceLocator.copy(
                 locations = resourceLocator.locations.copy(
                     progression = progression,
-                    totalProgression = totalProgression,
+                    totalProgression = totalProgression
                 ),
-                text = createSnippet(text, range),
+                text = createSnippet(text, range)
             )
         }
 
@@ -196,32 +221,32 @@ class StringSearchService(
             return Locator.Text(
                 highlight = text.substring(range),
                 before = before,
-                after = after,
+                after = after
             )
         }
 
         private lateinit var _positions: List<List<Locator>>
         private suspend fun positions(): List<List<Locator>> {
             if (!::_positions.isInitialized) {
-                _positions = publication.positionsByReadingOrder()
+                _positions = services.positionsByReadingOrder()
             }
             return _positions
         }
     }
 
     /** Implements the actual search algorithm in sanitized text content. */
-    interface Algorithm {
+    public interface Algorithm {
 
         /**
          * Default value for the search options available with this algorithm.
          * If an option does not have a value, it is not supported by the algorithm.
          */
-        val options: Options
+        public val options: Options
 
         /**
          * Finds all the ranges of occurrences of the given [query] in the [text].
          */
-        suspend fun findRanges(query: String, options: Options, text: String, locale: Locale): List<IntRange>
+        public suspend fun findRanges(query: String, options: Options, text: String, locale: Locale): List<IntRange>
     }
 
     /**
@@ -229,15 +254,20 @@ class StringSearchService(
      * while taking into account languages specificities.
      */
     @RequiresApi(Build.VERSION_CODES.N)
-    class IcuAlgorithm : Algorithm {
+    public class IcuAlgorithm : Algorithm {
 
         override val options: Options = Options(
             caseSensitive = false,
             diacriticSensitive = false,
-            wholeWord = false,
+            wholeWord = false
         )
 
-        override suspend fun findRanges(query: String, options: Options, text: String, locale: Locale): List<IntRange> {
+        override suspend fun findRanges(
+            query: String,
+            options: Options,
+            text: String,
+            locale: Locale
+        ): List<IntRange> {
             val ranges = mutableListOf<IntRange>()
             val iter = createStringSearch(query, options, text, locale)
             var start = iter.first()
@@ -248,7 +278,12 @@ class StringSearchService(
             return ranges
         }
 
-        private fun createStringSearch(query: String, options: Options, text: String, locale: Locale): StringSearch {
+        private fun createStringSearch(
+            query: String,
+            options: Options,
+            text: String,
+            locale: Locale
+        ): StringSearch {
             val caseSensitive = options.caseSensitive ?: false
             var diacriticSensitive = options.diacriticSensitive ?: false
             val wholeWord = options.wholeWord ?: false
@@ -264,19 +299,22 @@ class StringSearchService(
             val collator = Collator.getInstance(locale) as RuleBasedCollator
             if (!diacriticSensitive) {
                 collator.strength = Collator.PRIMARY
-                if (caseSensitive) {
-                    // FIXME: This doesn't seem to work despite the documentation indicating:
-                    // > To ignore accents but take cases into account, set strength to primary and case level to on.
-                    // > http://userguide.icu-project.org/collation/customization
-                    collator.isCaseLevel = true
-                }
+                // if (caseSensitive) {
+                // FIXME: This doesn't seem to work despite the documentation indicating:
+                // > To ignore accents but take cases into account, set strength to primary and case level to on.
+                // > http://userguide.icu-project.org/collation/customization
+                // collator.isCaseLevel = true
+                // }
             } else if (!caseSensitive) {
                 collator.strength = Collator.SECONDARY
             }
 
             val breakIterator: BreakIterator? =
-                if (wholeWord) BreakIterator.getWordInstance()
-                else null
+                if (wholeWord) {
+                    BreakIterator.getWordInstance()
+                } else {
+                    null
+                }
 
             return StringSearch(query, StringCharacterIterator(text), collator, breakIterator)
         }
@@ -289,11 +327,16 @@ class StringSearchService(
      * all languages, so this [Algorithm] does not have any options. Use [IcuAlgorithm] for
      * better results.
      */
-    class NaiveAlgorithm : Algorithm {
+    public class NaiveAlgorithm : Algorithm {
 
         override val options: Options get() = Options()
 
-        override suspend fun findRanges(query: String, options: Options, text: String, locale: Locale): List<IntRange> {
+        override suspend fun findRanges(
+            query: String,
+            options: Options,
+            text: String,
+            locale: Locale
+        ): List<IntRange> {
             val ranges = mutableListOf<IntRange>()
             var index: Int = text.indexOf(query)
             while (index >= 0) {
@@ -305,15 +348,15 @@ class StringSearchService(
     }
 }
 
-private fun List<Link>.titleMatching(href: String): String? {
+private fun List<Link>.titleMatching(href: Url): String? {
     for (link in this) {
         link.titleMatching(href)?.let { return it }
     }
     return null
 }
 
-private fun Link.titleMatching(targetHref: String): String? {
-    if (href.substringBeforeLast("#") == targetHref) {
+private fun Link.titleMatching(targetHref: Url): String? {
+    if (url().removeFragment() == targetHref) {
         return title
     }
     return children.titleMatching(targetHref)

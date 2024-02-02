@@ -9,27 +9,29 @@
 
 package org.readium.r2.lcp.license.model.components.lsd
 
+import java.util.*
 import org.json.JSONObject
 import org.readium.r2.shared.extensions.iso8601ToDate
 import org.readium.r2.shared.extensions.optNullableString
-import java.util.*
 
-data class Event(val json: JSONObject) {
+public data class Event(val json: JSONObject) {
     val type: String = json.optNullableString("type") ?: ""
     val name: String = json.optNullableString("name") ?: ""
     val id: String = json.optNullableString("id") ?: ""
     val date: Date? = json.optNullableString("timestamp")?.iso8601ToDate()
 
-    enum class EventType(val rawValue: String) {
-        register("register"),
-        renew("renew"),
-        `return`("return"),
-        revoke("revoke"),
-        cancel("cancel");
+    public enum class EventType(public val value: String) {
+        Register("register"),
+        Renew("renew"),
+        Return("return"),
+        Revoke("revoke"),
+        Cancel("cancel");
 
-        companion object {
-            operator fun invoke(rawValue: String) = values().firstOrNull { it.rawValue == rawValue }
+        @Deprecated("Use [value] instead", ReplaceWith("value"), level = DeprecationLevel.ERROR)
+        public val rawValue: String get() = value
+
+        public companion object {
+            public operator fun invoke(value: String): EventType? = values().firstOrNull { it.value == value }
         }
     }
-
 }

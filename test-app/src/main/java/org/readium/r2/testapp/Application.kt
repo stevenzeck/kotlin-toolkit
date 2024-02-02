@@ -6,17 +6,31 @@
 
 package org.readium.r2.testapp
 
-import android.content.*
-import android.os.IBinder
+import android.content.Context
+import android.os.Build
+import android.os.StrictMode
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStore
 import com.google.android.material.color.DynamicColors
-import kotlinx.coroutines.*
+import java.io.File
+import java.util.Properties
+import java.util.concurrent.Executors
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.MainScope
 import org.readium.r2.testapp.BuildConfig.DEBUG
-import org.readium.r2.testapp.bookshelf.BookRepository
-import org.readium.r2.testapp.db.BookDatabase
+import org.readium.r2.testapp.data.BookRepository
+import org.readium.r2.testapp.data.DownloadRepository
+import org.readium.r2.testapp.data.db.AppDatabase
+import org.readium.r2.testapp.data.model.Download
+import org.readium.r2.testapp.domain.Bookshelf
+import org.readium.r2.testapp.domain.CoverStorage
+import org.readium.r2.testapp.domain.LcpPublicationRetriever
+import org.readium.r2.testapp.domain.LocalPublicationRetriever
+import org.readium.r2.testapp.domain.OpdsPublicationRetriever
+import org.readium.r2.testapp.domain.PublicationRetriever
 import org.readium.r2.testapp.reader.ReaderRepository
 import timber.log.Timber
-import java.io.File
-import java.util.*
 
 class Application : android.app.Application() {
 
@@ -28,70 +42,86 @@ class Application : android.app.Application() {
     lateinit var bookRepository: BookRepository
         private set
 
-    lateinit var readerRepository: Deferred<ReaderRepository>
+    lateinit var bookshelf: Bookshelf
+        private set
+
+    lateinit var readerRepository: ReaderRepository
         private set
 
     private val coroutineScope: CoroutineScope =
         MainScope()
 
-    private val mediaServiceBinder: CompletableDeferred<MediaService.Binder> =
-        CompletableDeferred()
-
-    private val mediaServiceConnection = object : ServiceConnection {
-
-        override fun onServiceConnected(name: ComponentName?, service: IBinder) {
-            Timber.d("MediaService bound.")
-            mediaServiceBinder.complete(service as MediaService.Binder)
-        }
-
-        override fun onServiceDisconnected(name: ComponentName) {
-            Timber.d("MediaService disconnected.")
-            // Should not happen, do nothing.
-        }
-
-        override fun onNullBinding(name: ComponentName) {
-            Timber.d("Failed to bind to MediaService.")
-            // Should not happen, do nothing.
-        }
-    }
+    private val Context.navigatorPreferences: DataStore<Preferences>
+        by preferencesDataStore(name = "navigator-preferences")
 
     override fun onCreate() {
+        if (DEBUG) {
+//            enableStrictMode()
+            Timber.plant(Timber.DebugTree())
+        }
+
         super.onCreate()
+
         DynamicColors.applyToActivitiesIfAvailable(this)
-        if (DEBUG) Timber.plant(Timber.DebugTree())
 
         readium = Readium(this)
 
         storageDir = computeStorageDir()
 
-        /*
-         * Starting media service.
-         */
+        val database = AppDatabase.getDatabase(this)
 
-        // MediaSessionService.onBind requires the intent to have a non-null action.
-        val intent = Intent(MediaService.SERVICE_INTERFACE)
-            .apply { setClass(applicationContext, MediaService::class.java) }
-        startService(intent)
-        bindService(intent, mediaServiceConnection, 0)
+        bookRepository = BookRepository(database.booksDao())
 
+        bookshelf =
+            Bookshelf(
+                bookRepository,
+                CoverStorage(storageDir, httpClient = readium.httpClient),
+                readium.publicationOpener,
+                readium.assetRetriever,
+                createPublicationRetriever = { listener ->
+                    PublicationRetriever(
+                        listener = listener,
+                        createLocalPublicationRetriever = { localListener ->
+                            LocalPublicationRetriever(
+                                listener = localListener,
+                                context = applicationContext,
+                                storageDir = storageDir,
+                                assetRetriever = readium.assetRetriever,
+                                createLcpPublicationRetriever = { lcpListener ->
+                                    readium.lcpService.getOrNull()?.publicationRetriever()
+                                        ?.let { retriever ->
+                                            LcpPublicationRetriever(
+                                                listener = lcpListener,
+                                                downloadRepository = DownloadRepository(
+                                                    Download.Type.LCP,
+                                                    database.downloadsDao()
+                                                ),
+                                                lcpPublicationRetriever = retriever
+                                            )
+                                        }
+                                }
+                            )
+                        },
+                        createOpdsPublicationRetriever = { opdsListener ->
+                            OpdsPublicationRetriever(
+                                listener = opdsListener,
+                                downloadManager = readium.downloadManager,
+                                downloadRepository = DownloadRepository(
+                                    Download.Type.OPDS,
+                                    database.downloadsDao()
+                                )
+                            )
+                        }
+                    )
+                }
+            )
 
-        /*
-         * Initializing repositories
-         */
-        bookRepository =
-            BookDatabase.getDatabase(this).booksDao()
-                .let {  BookRepository(it) }
-
-        readerRepository =
-            coroutineScope.async {
-                ReaderRepository(
-                    this@Application,
-                    readium,
-                    mediaServiceBinder.await(),
-                    bookRepository
-                )
-            }
-
+        readerRepository = ReaderRepository(
+            this@Application,
+            readium,
+            bookRepository,
+            navigatorPreferences
+        )
     }
 
     private fun computeStorageDir(): File {
@@ -102,12 +132,41 @@ class Application : android.app.Application() {
             properties.getProperty("useExternalFileDir", "false")!!.toBoolean()
 
         return File(
-            if (useExternalFileDir) getExternalFilesDir(null)?.path + "/"
-            else filesDir?.path + "/"
+            if (useExternalFileDir) {
+                getExternalFilesDir(null)?.path + "/"
+            } else {
+                filesDir?.path + "/"
+            }
+        )
+    }
+
+    /**
+     * Strict mode will log violation of VM and threading policy.
+     * Use it to make sure the app doesn't do too much work on the main thread.
+     */
+    private fun enableStrictMode() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            return
+        }
+
+        val executor = Executors.newSingleThreadExecutor()
+        StrictMode.setThreadPolicy(
+            StrictMode.ThreadPolicy.Builder()
+                .detectAll()
+                .penaltyListener(executor) { violation ->
+                    Timber.e(violation, "Thread policy violation")
+                }
+//                .penaltyDeath()
+                .build()
+        )
+        StrictMode.setVmPolicy(
+            StrictMode.VmPolicy.Builder()
+                .detectAll()
+                .penaltyListener(executor) { violation ->
+                    Timber.e(violation, "VM policy violation")
+                }
+//                .penaltyDeath()
+                .build()
         )
     }
 }
-
-
-val Context.resolver: ContentResolver
-    get() = applicationContext.contentResolver

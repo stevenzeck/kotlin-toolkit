@@ -13,13 +13,18 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.MotionEvent
 import org.readium.r2.navigator.BuildConfig.DEBUG
-import org.readium.r2.shared.publication.Publication
 import timber.log.Timber
 
-class R2ViewPager : R2RTLViewPager {
+internal class R2ViewPager : R2RTLViewPager {
 
+    internal enum class PublicationType {
+        EPUB, CBZ, FXL, WEBPUB, AUDIO, DiViNa
+    }
 
-    lateinit var type: Publication.TYPE
+    internal lateinit var publicationType: PublicationType
+
+    @Deprecated(message = "You shouldn't be using these internals.", level = DeprecationLevel.ERROR)
+    val type = Unit
 
     constructor(context: Context) : super(context)
     constructor(context: Context, attrs: AttributeSet) : super(context, attrs)
@@ -30,7 +35,7 @@ class R2ViewPager : R2RTLViewPager {
 
     override fun onTouchEvent(ev: MotionEvent): Boolean {
         if (DEBUG) Timber.d("ev.action ${ev.action}")
-        if (type == Publication.TYPE.EPUB) {
+        if (publicationType == PublicationType.EPUB) {
             when (ev.action and MotionEvent.ACTION_MASK) {
                 MotionEvent.ACTION_DOWN -> {
                     // prevent swipe from view pager directly
@@ -45,7 +50,6 @@ class R2ViewPager : R2RTLViewPager {
             // java.lang.IllegalArgumentException: pointerIndex out of range
             // i.e. https://stackoverflow.com/q/48496257/1474476
             return super.onTouchEvent(ev)
-
         } catch (ex: IllegalArgumentException) {
             Timber.e(ex)
             false
@@ -53,7 +57,7 @@ class R2ViewPager : R2RTLViewPager {
     }
 
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
-        if (type == Publication.TYPE.EPUB) {
+        if (publicationType == PublicationType.EPUB) {
             when (ev.action and MotionEvent.ACTION_MASK) {
                 MotionEvent.ACTION_DOWN -> {
                     // prevent swipe from view pager directly
@@ -72,5 +76,4 @@ class R2ViewPager : R2RTLViewPager {
             false
         }
     }
-
 }

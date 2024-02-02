@@ -1,18 +1,25 @@
+/*
+ * Copyright 2022 Readium Foundation. All rights reserved.
+ * Use of this source code is governed by the BSD-style license
+ * available in the top-level LICENSE file of the project.
+ */
+
 package org.readium.r2.navigator.epub.css
 
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.readium.r2.navigator.settings.FontFamily
-import org.readium.r2.shared.ExperimentalReadiumApi
-import org.readium.r2.shared.publication.ReadingProgression
-import org.readium.r2.shared.util.Language
-import org.robolectric.RobolectricTestRunner
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.readium.r2.navigator.preferences.FontFamily
+import org.readium.r2.navigator.preferences.ReadingProgression
+import org.readium.r2.shared.ExperimentalReadiumApi
+import org.readium.r2.shared.util.Language
+import org.readium.r2.shared.util.Url
+import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 @OptIn(ExperimentalReadiumApi::class)
-class HtmlInjectionTest {
+class ReadiumCssTest {
 
     @Test
     fun `Inject with a simple HEAD`() {
@@ -22,7 +29,7 @@ class HtmlInjectionTest {
                 stylesheets = Layout.Stylesheets.Default,
                 readingProgression = ReadingProgression.LTR
             ),
-            assetsBaseHref = "/assets/"
+            assetsBaseHref = Url("/assets/")!!
         )
         assertEquals(
             """
@@ -31,6 +38,10 @@ class HtmlInjectionTest {
                     <head>
                 <link rel="stylesheet" type="text/css" href="/assets/readium/readium-css/ReadiumCSS-before.css"/>
                 <style>audio[controls] { width: revert; height: revert; }</style>
+                                <style>
+                                    :root[style], :root { overflow: visible !important; }
+                                    :root[style] > body, :root > body { overflow: visible !important; }
+                                </style>
                 
                         <title>Publication</title>
                         <link rel="stylesheet" href="style.css" type="text/css"/>
@@ -63,7 +74,7 @@ class HtmlInjectionTest {
                 stylesheets = Layout.Stylesheets.Default,
                 readingProgression = ReadingProgression.LTR
             ),
-            assetsBaseHref = "/assets/"
+            assetsBaseHref = Url("/assets/")!!
         )
         assertEquals(
             """
@@ -72,6 +83,10 @@ class HtmlInjectionTest {
                     <head xmlns:xlink="http://www.w3.org/1999/xlink">
                 <link rel="stylesheet" type="text/css" href="/assets/readium/readium-css/ReadiumCSS-before.css"/>
                 <style>audio[controls] { width: revert; height: revert; }</style>
+                                <style>
+                                    :root[style], :root { overflow: visible !important; }
+                                    :root[style] > body, :root > body { overflow: visible !important; }
+                                </style>
                 
                         <title>Publication</title>
                         <link rel="stylesheet" href="style.css" type="text/css"/>
@@ -104,13 +119,17 @@ class HtmlInjectionTest {
                 stylesheets = Layout.Stylesheets.Default,
                 readingProgression = ReadingProgression.LTR
             ),
-            assetsBaseHref = "/assets/"
+            assetsBaseHref = Url("/assets/")!!
         )
         assertEquals(
             """
                 <?xml version="1.0" encoding="utf-8"?><html dir="ltr" xmlns="http://www.w3.org/1999/xhtml"><head xmlns:xlink="http://www.w3.org/1999/xlink">
                 <link rel="stylesheet" type="text/css" href="/assets/readium/readium-css/ReadiumCSS-before.css"/>
                 <style>audio[controls] { width: revert; height: revert; }</style>
+                                <style>
+                                    :root[style], :root { overflow: visible !important; }
+                                    :root[style] > body, :root > body { overflow: visible !important; }
+                                </style>
                 <title>Publication</title><link rel="stylesheet" href="style.css" type="text/css"/>
                 <link rel="stylesheet" type="text/css" href="/assets/readium/readium-css/ReadiumCSS-after.css"/>
                 </head><body dir="ltr" xmlns:xlink="http://www.w3.org/1999/xlink"></body></html>
@@ -119,7 +138,7 @@ class HtmlInjectionTest {
                 """
                     <?xml version="1.0" encoding="utf-8"?><html xmlns="http://www.w3.org/1999/xhtml"><head xmlns:xlink="http://www.w3.org/1999/xlink"><title>Publication</title><link rel="stylesheet" href="style.css" type="text/css"/></head><body xmlns:xlink="http://www.w3.org/1999/xlink"></body></html>
                 """.trimIndent()
-           )
+            )
         )
     }
 
@@ -131,13 +150,17 @@ class HtmlInjectionTest {
                 stylesheets = Layout.Stylesheets.Default,
                 readingProgression = ReadingProgression.LTR
             ),
-            assetsBaseHref = "/assets/"
+            assetsBaseHref = Url("/assets/")!!
         )
         assertEquals(
             """
                 <?xml version="1.0" encoding="utf-8"?><HTML dir="ltr" xmlns="http://www.w3.org/1999/xhtml"><HEAD xmlns:xlink="http://www.w3.org/1999/xlink">
                 <link rel="stylesheet" type="text/css" href="/assets/readium/readium-css/ReadiumCSS-before.css"/>
                 <style>audio[controls] { width: revert; height: revert; }</style>
+                                <style>
+                                    :root[style], :root { overflow: visible !important; }
+                                    :root[style] > body, :root > body { overflow: visible !important; }
+                                </style>
                 <title>Publication</title><link rel="stylesheet" href="style.css" type="text/css"/>
                 <link rel="stylesheet" type="text/css" href="/assets/readium/readium-css/ReadiumCSS-after.css"/>
                 </HEAD><BODY dir="ltr" xmlns:xlink="http://www.w3.org/1999/xlink"></BODY></HTML>
@@ -158,7 +181,7 @@ class HtmlInjectionTest {
                 stylesheets = Layout.Stylesheets.Default,
                 readingProgression = ReadingProgression.LTR
             ),
-            assetsBaseHref = "/assets/"
+            assetsBaseHref = Url("/assets/")!!
         )
         assertEquals(
             """
@@ -167,6 +190,10 @@ class HtmlInjectionTest {
                     <head>
                 <link rel="stylesheet" type="text/css" href="/assets/readium/readium-css/ReadiumCSS-before.css"/>
                 <style>audio[controls] { width: revert; height: revert; }</style>
+                                <style>
+                                    :root[style], :root { overflow: visible !important; }
+                                    :root[style] > body, :root > body { overflow: visible !important; }
+                                </style>
                 <link rel="stylesheet" type="text/css" href="/assets/readium/readium-css/ReadiumCSS-default.css"/>
                 
                         <title>Publication</title>
@@ -198,7 +225,7 @@ class HtmlInjectionTest {
                 stylesheets = Layout.Stylesheets.Default,
                 readingProgression = ReadingProgression.LTR
             ),
-            assetsBaseHref = "/assets/"
+            assetsBaseHref = Url("/assets/")!!
         )
         // A <link> tag is considered styled.
         assertFalse(
@@ -256,7 +283,7 @@ class HtmlInjectionTest {
                 stylesheets = Layout.Stylesheets.Rtl,
                 readingProgression = ReadingProgression.LTR
             ),
-            assetsBaseHref = "/assets/"
+            assetsBaseHref = Url("/assets/")!!
         )
         assertEquals(
             """
@@ -265,6 +292,10 @@ class HtmlInjectionTest {
                     <head>
                 <link rel="stylesheet" type="text/css" href="/assets/readium/readium-css/rtl/ReadiumCSS-before.css"/>
                 <style>audio[controls] { width: revert; height: revert; }</style>
+                                <style>
+                                    :root[style], :root { overflow: visible !important; }
+                                    :root[style] > body, :root > body { overflow: visible !important; }
+                                </style>
                 
                         <title>Publication</title>
                         <link rel="stylesheet" href="style.css" type="text/css"/>
@@ -297,7 +328,7 @@ class HtmlInjectionTest {
                 stylesheets = Layout.Stylesheets.CjkHorizontal,
                 readingProgression = ReadingProgression.LTR
             ),
-            assetsBaseHref = "/assets/"
+            assetsBaseHref = Url("/assets/")!!
         )
         assertEquals(
             """
@@ -306,6 +337,10 @@ class HtmlInjectionTest {
                     <head>
                 <link rel="stylesheet" type="text/css" href="/assets/readium/readium-css/cjk-horizontal/ReadiumCSS-before.css"/>
                 <style>audio[controls] { width: revert; height: revert; }</style>
+                                <style>
+                                    :root[style], :root { overflow: visible !important; }
+                                    :root[style] > body, :root > body { overflow: visible !important; }
+                                </style>
                 
                         <title>Publication</title>
                         <link rel="stylesheet" href="style.css" type="text/css"/>
@@ -339,7 +374,7 @@ class HtmlInjectionTest {
                 stylesheets = Layout.Stylesheets.CjkVertical,
                 readingProgression = ReadingProgression.LTR
             ),
-            assetsBaseHref = "/assets/"
+            assetsBaseHref = Url("/assets/")!!
         )
         assertEquals(
             """
@@ -348,6 +383,10 @@ class HtmlInjectionTest {
                     <head>
                 <link rel="stylesheet" type="text/css" href="/assets/readium/readium-css/cjk-vertical/ReadiumCSS-before.css"/>
                 <style>audio[controls] { width: revert; height: revert; }</style>
+                                <style>
+                                    :root[style], :root { overflow: visible !important; }
+                                    :root[style] > body, :root > body { overflow: visible !important; }
+                                </style>
                 
                         <title>Publication</title>
                         <link rel="stylesheet" href="style.css" type="text/css"/>
@@ -380,7 +419,7 @@ class HtmlInjectionTest {
                 stylesheets = Layout.Stylesheets.Default,
                 readingProgression = ReadingProgression.LTR
             ),
-            assetsBaseHref = "/assets/"
+            assetsBaseHref = Url("/assets/")!!
         )
         assertEquals(
             """
@@ -389,6 +428,10 @@ class HtmlInjectionTest {
                     <head>
                 <link rel="stylesheet" type="text/css" href="/assets/readium/readium-css/ReadiumCSS-before.css"/>
                 <style>audio[controls] { width: revert; height: revert; }</style>
+                                <style>
+                                    :root[style], :root { overflow: visible !important; }
+                                    :root[style] > body, :root > body { overflow: visible !important; }
+                                </style>
                 
                         <title>Publication</title>
                         <link rel="stylesheet" href="style.css" type="text/css"/>
@@ -421,7 +464,7 @@ class HtmlInjectionTest {
                 stylesheets = Layout.Stylesheets.Default,
                 readingProgression = ReadingProgression.LTR
             ),
-            assetsBaseHref = "/assets/"
+            assetsBaseHref = Url("/assets/")!!
         )
         assertEquals(
             """
@@ -430,6 +473,10 @@ class HtmlInjectionTest {
                     <head>
                 <link rel="stylesheet" type="text/css" href="/assets/readium/readium-css/ReadiumCSS-before.css"/>
                 <style>audio[controls] { width: revert; height: revert; }</style>
+                                <style>
+                                    :root[style], :root { overflow: visible !important; }
+                                    :root[style] > body, :root > body { overflow: visible !important; }
+                                </style>
                 
                         <title>Publication</title>
                         <link rel="stylesheet" href="style.css" type="text/css"/>
@@ -462,7 +509,7 @@ class HtmlInjectionTest {
                 stylesheets = Layout.Stylesheets.Default,
                 readingProgression = ReadingProgression.LTR
             ),
-            assetsBaseHref = "/assets/"
+            assetsBaseHref = Url("/assets/")!!
         )
         assertEquals(
             """
@@ -471,6 +518,10 @@ class HtmlInjectionTest {
                     <head>
                 <link rel="stylesheet" type="text/css" href="/assets/readium/readium-css/ReadiumCSS-before.css"/>
                 <style>audio[controls] { width: revert; height: revert; }</style>
+                                <style>
+                                    :root[style], :root { overflow: visible !important; }
+                                    :root[style] > body, :root > body { overflow: visible !important; }
+                                </style>
                 
                         <title>Publication</title>
                         <link rel="stylesheet" href="style.css" type="text/css"/>
@@ -503,7 +554,7 @@ class HtmlInjectionTest {
                 stylesheets = Layout.Stylesheets.Default,
                 readingProgression = ReadingProgression.LTR
             ),
-            assetsBaseHref = "/assets/"
+            assetsBaseHref = Url("/assets/")!!
         )
         assertEquals(
             """
@@ -512,6 +563,10 @@ class HtmlInjectionTest {
                     <head>
                 <link rel="stylesheet" type="text/css" href="/assets/readium/readium-css/ReadiumCSS-before.css"/>
                 <style>audio[controls] { width: revert; height: revert; }</style>
+                                <style>
+                                    :root[style], :root { overflow: visible !important; }
+                                    :root[style] > body, :root > body { overflow: visible !important; }
+                                </style>
                 
                         <title>Publication</title>
                         <link rel="stylesheet" href="style.css" type="text/css"/>
@@ -539,17 +594,24 @@ class HtmlInjectionTest {
     @Test
     fun `Inject font declarations`() {
         val sut = ReadiumCss(
-            fontFamilies = listOf(
-                FontFamily.SANS_SERIF.from(FontFamilySource.System),
-                FontFamily.ROBOTO.from(FontFamilySource.GoogleFonts),
-                FontFamily.LITERATA.from(FontFamilySource.GoogleFonts),
-                FontFamily.LIBRE_FRANKLIN.from(FontFamilySource.Assets("fonts/LibreFranklin.otf")),
-                FontFamily.ACCESSIBLE_DFA.from(FontFamilySource.ReadiumCss),
-                FontFamily.PT_SERIF.from(FontFamilySource.GoogleFonts),
-                FontFamily.IA_WRITER_DUOSPACE.from(FontFamilySource.ReadiumCss),
-                FontFamily.OPEN_DYSLEXIC.from(FontFamilySource.Assets("fonts/OpenDyslexic.otf")),
+            fontFamilyDeclarations = listOf(
+                buildFontFamilyDeclaration("Libre Franklin", alternates = emptyList()) {
+                    addFontFace {
+                        addSource("fonts/LibreFranklin.otf")
+                    }
+                },
+                buildFontFamilyDeclaration("Open Dyslexic", alternates = emptyList()) {
+                    addFontFace {
+                        addSource("fonts/OpenDyslexic.otf")
+                    }
+                }
             ),
-            assetsBaseHref = "/assets/"
+            googleFonts = listOf(
+                FontFamily.OPEN_DYSLEXIC,
+                FontFamily.SANS_SERIF,
+                FontFamily.SERIF
+            ),
+            assetsBaseHref = Url("/assets/")!!
         )
         assertEquals(
             """
@@ -558,15 +620,19 @@ class HtmlInjectionTest {
                     <head>
                 <link rel="stylesheet" type="text/css" href="/assets/readium/readium-css/ReadiumCSS-before.css"/>
                 <style>audio[controls] { width: revert; height: revert; }</style>
+                                <style>
+                                    :root[style], :root { overflow: visible !important; }
+                                    :root[style] > body, :root > body { overflow: visible !important; }
+                                </style>
                 
                         <title>Publication</title>
                         <link rel="stylesheet" href="style.css" type="text/css"/>
                     
                 <link rel="stylesheet" type="text/css" href="/assets/readium/readium-css/ReadiumCSS-after.css"/>
                                     <style type="text/css">
-                                    @import url('https://fonts.googleapis.com/css?family=Roboto%7CLiterata%7CPT%20Serif');
+                                    @import url('https://fonts.googleapis.com/css?family=OpenDyslexic%7Csans-serif%7Cserif');
                 @font-face { font-family: "Libre Franklin"; src: url("/assets/fonts/LibreFranklin.otf"); }
-                @font-face { font-family: "OpenDyslexic"; src: url("/assets/fonts/OpenDyslexic.otf"); }
+                @font-face { font-family: "Open Dyslexic"; src: url("/assets/fonts/OpenDyslexic.otf"); }
                                     </style>
                 </head>
                     <body dir="ltr"></body>
@@ -595,7 +661,7 @@ class HtmlInjectionTest {
                 stylesheets = Layout.Stylesheets.Default,
                 readingProgression = ReadingProgression.LTR
             ),
-            assetsBaseHref = "/assets/"
+            assetsBaseHref = Url("/assets/")!!
         )
         assertEquals(
             """
@@ -604,6 +670,10 @@ class HtmlInjectionTest {
                     <head>
                 <link rel="stylesheet" type="text/css" href="/assets/readium/readium-css/ReadiumCSS-before.css"/>
                 <style>audio[controls] { width: revert; height: revert; }</style>
+                                <style>
+                                    :root[style], :root { overflow: visible !important; }
+                                    :root[style] > body, :root > body { overflow: visible !important; }
+                                </style>
                 
                         <title>Publication</title>
                         <link rel="stylesheet" href="style.css" type="text/css"/>

@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package org.readium.navigator.media2
 
 import android.graphics.Bitmap
@@ -9,8 +11,9 @@ import kotlinx.coroutines.async
 import org.readium.r2.shared.publication.Publication
 import org.readium.r2.shared.publication.services.cover
 
+@Suppress("DEPRECATION")
 @ExperimentalMedia2
-internal class DefaultMetadataFactory(private val publication: Publication): MediaMetadataFactory {
+internal class DefaultMetadataFactory(private val publication: Publication) : MediaMetadataFactory {
 
     private val coroutineScope =
         CoroutineScope(Dispatchers.Default)
@@ -31,15 +34,15 @@ internal class DefaultMetadataFactory(private val publication: Publication): Med
 
         authors
             ?.let {
-                builder.putString(MediaMetadata.METADATA_KEY_AUTHOR,  it)
-                builder.putString(MediaMetadata.METADATA_KEY_ARTIST,  it)
+                builder.putString(MediaMetadata.METADATA_KEY_AUTHOR, it)
+                builder.putString(MediaMetadata.METADATA_KEY_ARTIST, it)
             }
 
         publication.metadata.duration
             ?.let { builder.putLong(MediaMetadata.METADATA_KEY_DURATION, it.toLong() * 1000) }
 
         cover.await()
-            ?.let { builder.putBitmap(MediaMetadata.METADATA_KEY_ART, it)}
+            ?.let { builder.putBitmap(MediaMetadata.METADATA_KEY_ART, it) }
 
         return builder.build()
     }
@@ -51,7 +54,7 @@ internal class DefaultMetadataFactory(private val publication: Publication): Med
         val builder = MediaMetadata.Builder()
         val link = publication.readingOrder[index]
         builder.putLong(MediaMetadata.METADATA_KEY_TRACK_NUMBER, index.toLong())
-        builder.putString(MediaMetadata.METADATA_KEY_MEDIA_URI, link.href)
+        builder.putString(MediaMetadata.METADATA_KEY_MEDIA_URI, link.href.toString())
         builder.putString(MediaMetadata.METADATA_KEY_TITLE, link.title)
         builder.putString(MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE, publication.metadata.title)
         builder.putString(MediaMetadata.METADATA_KEY_ALBUM, publication.metadata.title)
@@ -61,7 +64,7 @@ internal class DefaultMetadataFactory(private val publication: Publication): Med
             builder.putString(MediaMetadata.METADATA_KEY_ARTIST, it)
             builder.putString(MediaMetadata.METADATA_KEY_AUTHOR, it)
         }
-        cover.await()?.let { builder.putBitmap(MediaMetadata.METADATA_KEY_ART, it)}
+        cover.await()?.let { builder.putBitmap(MediaMetadata.METADATA_KEY_ART, it) }
         return builder.build()
     }
 }

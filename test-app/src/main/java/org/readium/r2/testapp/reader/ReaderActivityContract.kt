@@ -17,21 +17,22 @@ import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.core.os.bundleOf
 
-class ReaderActivityContract
-    : ActivityResultContract<ReaderActivityContract.Arguments, ReaderActivityContract.Arguments?>() {
+class ReaderActivityContract :
+    ActivityResultContract<ReaderActivityContract.Arguments, ReaderActivityContract.Arguments?>() {
 
     data class Arguments(val bookId: Long)
 
     override fun createIntent(context: Context, input: Arguments): Intent {
         val intent = Intent(context, ReaderActivity::class.java)
-        val arguments =  bundleOf("bookId" to input.bookId)
+        val arguments = bundleOf("bookId" to input.bookId)
         intent.putExtras(arguments)
         return intent
     }
 
     override fun parseResult(resultCode: Int, intent: Intent?): Arguments? {
-        if (intent == null)
+        if (intent == null) {
             return null
+        }
 
         val extras = requireNotNull(intent.extras)
         return parseExtras(extras)

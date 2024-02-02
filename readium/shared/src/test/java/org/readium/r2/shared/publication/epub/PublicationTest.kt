@@ -11,8 +11,11 @@ package org.readium.r2.shared.publication.epub
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.readium.r2.shared.publication.*
+import org.robolectric.RobolectricTestRunner
 
+@RunWith(RobolectricTestRunner::class)
 class PublicationTest {
 
     private fun createPublication(
@@ -25,12 +28,14 @@ class PublicationTest {
     )
 
     @Test fun `get {pageList}`() {
-        val links = listOf(Link(href = "/page1.html"))
+        val links = listOf(Link(href = Href("/page1.html")!!))
         assertEquals(
             links,
-            createPublication(subcollections = mapOf(
-                "pageList" to listOf(PublicationCollection( links = links))
-            )).pageList
+            createPublication(
+                subcollections = mapOf(
+                    "pageList" to listOf(PublicationCollection(links = links))
+                )
+            ).pageList
         )
     }
 
@@ -39,13 +44,14 @@ class PublicationTest {
     }
 
     @Test fun `get {landmarks}`() {
-        val links = listOf(Link(href = "/landmark.html"))
+        val links = listOf(Link(href = Href("/landmark.html")!!))
         assertEquals(
             links,
-            createPublication(subcollections = mapOf(
-                "landmarks" to listOf(PublicationCollection(links = links))
-            )
-           ).landmarks
+            createPublication(
+                subcollections = mapOf(
+                    "landmarks" to listOf(PublicationCollection(links = links))
+                )
+            ).landmarks
         )
     }
 
@@ -54,12 +60,14 @@ class PublicationTest {
     }
 
     @Test fun `get {listOfAudioClips}`() {
-        val links = listOf(Link(href = "/audio.mp3"))
+        val links = listOf(Link(href = Href("/audio.mp3")!!))
         assertEquals(
             links,
-            createPublication(subcollections = mapOf(
-                "loa" to listOf(PublicationCollection(links = links))
-            )).listOfAudioClips
+            createPublication(
+                subcollections = mapOf(
+                    "loa" to listOf(PublicationCollection(links = links))
+                )
+            ).listOfAudioClips
         )
     }
 
@@ -68,12 +76,14 @@ class PublicationTest {
     }
 
     @Test fun `get {listOfIllustrations}`() {
-        val links = listOf(Link(href = "/image.jpg"))
+        val links = listOf(Link(href = Href("/image.jpg")!!))
         assertEquals(
             links,
-            createPublication(subcollections = mapOf(
-                "loi" to listOf(PublicationCollection(links = links))
-            )).listOfIllustrations
+            createPublication(
+                subcollections = mapOf(
+                    "loi" to listOf(PublicationCollection(links = links))
+                )
+            ).listOfIllustrations
         )
     }
 
@@ -82,12 +92,16 @@ class PublicationTest {
     }
 
     @Test fun `get {listOfTables}`() {
-        val links = listOf(Link(href = "/table.html"))
+        val links = listOf(Link(href = Href("/table.html")!!))
         assertEquals(
             links,
-            createPublication(subcollections = mapOf(
-                "lot" to listOf(PublicationCollection(links = links)
-            ))).listOfTables
+            createPublication(
+                subcollections = mapOf(
+                    "lot" to listOf(
+                        PublicationCollection(links = links)
+                    )
+                )
+            ).listOfTables
         )
     }
 
@@ -96,17 +110,18 @@ class PublicationTest {
     }
 
     @Test fun `get {listOfVideoClips}`() {
-        val links = listOf(Link(href = "/video.mov"))
+        val links = listOf(Link(href = Href("/video.mov")!!))
         assertEquals(
             links,
-            createPublication(subcollections = mapOf(
-                "lov" to listOf(PublicationCollection(links = links))
-            )).listOfVideoClips
+            createPublication(
+                subcollections = mapOf(
+                    "lov" to listOf(PublicationCollection(links = links))
+                )
+            ).listOfVideoClips
         )
     }
 
     @Test fun `get {listOfVideoClips} when missing`() {
         assertEquals(0, createPublication().listOfVideoClips.size)
     }
-
 }

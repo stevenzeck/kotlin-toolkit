@@ -11,15 +11,13 @@ import androidx.core.view.ViewCompat
  * Extensions
  */
 
-
 /** returns true if the resolved layout direction of the content view in this
  * activity is ViewCompat.LAYOUT_DIRECTION_RTL. Otherwise false. */
-fun Activity.layoutDirectionIsRTL(): Boolean {
+internal fun Activity.layoutDirectionIsRTL(): Boolean {
     return ViewCompat.getLayoutDirection(findViewById(android.R.id.content)) == ViewCompat.LAYOUT_DIRECTION_RTL
 }
 
-
 @ColorInt
-fun Context.color(@ColorRes id: Int): Int {
+internal fun Context.color(@ColorRes id: Int): Int {
     return ContextCompat.getColor(this, id)
 }

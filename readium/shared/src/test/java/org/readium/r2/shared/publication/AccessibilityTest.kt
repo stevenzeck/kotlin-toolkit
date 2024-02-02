@@ -6,13 +6,13 @@
 
 package org.readium.r2.shared.publication
 
+import kotlin.test.assertEquals
 import org.json.JSONObject
 import org.junit.Assert
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.readium.r2.shared.assertJSONEquals
 import org.robolectric.RobolectricTestRunner
-import kotlin.test.assertEquals
 
 @RunWith(RobolectricTestRunner::class)
 class AccessibilityTest {
@@ -46,9 +46,11 @@ class AccessibilityTest {
                 hazards = emptySet()
             ),
             Accessibility.fromJSON(
-                JSONObject("""{
+                JSONObject(
+                    """{
                     "summary": ["sum1", "sum2"]
-                }""")
+                }"""
+                )
             )
         )
     }
@@ -65,7 +67,7 @@ class AccessibilityTest {
                 hazards = emptySet(),
                 features = emptySet()
             ),
-            Accessibility.fromJSON(JSONObject("{}")),
+            Accessibility.fromJSON(JSONObject("{}"))
         )
     }
 
@@ -87,7 +89,7 @@ class AccessibilityTest {
                     credential = "credential1",
                     report = "https://report1"
                 ),
-                summary ="Summary",
+                summary = "Summary",
                 accessModes = setOf(
                     Accessibility.AccessMode.AUDITORY,
                     Accessibility.AccessMode.CHART_ON_VISUAL
@@ -108,7 +110,8 @@ class AccessibilityTest {
                 )
             ),
             Accessibility.fromJSON(
-                JSONObject("""{
+                JSONObject(
+                    """{
                     "conformsTo": ["https://profile1", "https://profile2"],
                     "certification": {
                         "certifiedBy": "company1",
@@ -120,7 +123,8 @@ class AccessibilityTest {
                     "accessModeSufficient": [["visual", "tactile"]],
                     "feature": ["readingOrder", "alternativeText"],
                     "hazard": ["flashing", "motionSimulation"]
-                }""")
+                }"""
+                )
             )
         )
     }
@@ -138,9 +142,11 @@ class AccessibilityTest {
                 hazards = emptySet()
             ),
             Accessibility.fromJSON(
-                JSONObject("""{
+                JSONObject(
+                    """{
                     "conformsTo": "http://www.idpf.org/epub/a11y/accessibility-20170105.html#wcag-a"
-                }""")
+                }"""
+                )
             )
         )
     }
@@ -160,11 +166,13 @@ class AccessibilityTest {
                 features = emptySet(),
                 hazards = emptySet()
             ),
-             Accessibility.fromJSON(
-                 JSONObject("""{
+            Accessibility.fromJSON(
+                JSONObject(
+                    """{
                     "conformsTo": ["http://www.idpf.org/epub/a11y/accessibility-20170105.html#wcag-a", "https://profile2"]
-                 }""")
-             )
+                 }"""
+                )
+            )
         )
     }
 
@@ -184,9 +192,11 @@ class AccessibilityTest {
                 hazards = emptySet()
             ),
             Accessibility.fromJSON(
-                JSONObject("""{
+                JSONObject(
+                    """{
                     "accessMode": ["auditory", "chartOnVisual", "chemOnVisual"],
-                }""")
+                }"""
+                )
             )
         )
     }
@@ -201,16 +211,21 @@ class AccessibilityTest {
                 accessModes = emptySet(),
                 accessModesSufficient = setOf(
                     setOf(Accessibility.PrimaryAccessMode.AUDITORY),
-                    setOf(Accessibility.PrimaryAccessMode.VISUAL, Accessibility.PrimaryAccessMode.TACTILE),
+                    setOf(
+                        Accessibility.PrimaryAccessMode.VISUAL,
+                        Accessibility.PrimaryAccessMode.TACTILE
+                    ),
                     setOf(Accessibility.PrimaryAccessMode.VISUAL)
                 ),
                 features = emptySet(),
                 hazards = emptySet()
             ),
             Accessibility.fromJSON(
-                JSONObject("""{
+                JSONObject(
+                    """{
                     "accessModeSufficient": ["auditory", ["visual", "tactile"], [], "visual"]
-                }""")
+                }"""
+                )
             )
         )
     }
@@ -223,7 +238,7 @@ class AccessibilityTest {
                 certification = null,
                 summary = null,
                 accessModes = emptySet(),
-                accessModesSufficient = emptySet (),
+                accessModesSufficient = emptySet(),
                 features = setOf(
                     Accessibility.Feature.INDEX,
                     Accessibility.Feature.ARIA,
@@ -232,9 +247,11 @@ class AccessibilityTest {
                 hazards = emptySet()
             ),
             Accessibility.fromJSON(
-                JSONObject("""{
+                JSONObject(
+                    """{
                     "feature": ["index", "ARIA", "annotations"]
-                }""")
+                }"""
+                )
             )
         )
     }
@@ -247,7 +264,7 @@ class AccessibilityTest {
                 certification = null,
                 summary = null,
                 accessModes = emptySet(),
-                accessModesSufficient = emptySet (),
+                accessModesSufficient = emptySet(),
                 features = emptySet(),
                 hazards = setOf(
                     Accessibility.Hazard.FLASHING,
@@ -256,16 +273,20 @@ class AccessibilityTest {
                 )
             ),
             Accessibility.fromJSON(
-                JSONObject("""{
+                JSONObject(
+                    """{
                     "hazard": ["flashing", "noSoundHazard", "motionSimulation"]
-                }"""))
+                }"""
+                )
+            )
         )
     }
 
     @Test
     fun `get full JSON`() {
         assertJSONEquals(
-            JSONObject("""{
+            JSONObject(
+                """{
                 "conformsTo": ["http://www.idpf.org/epub/a11y/accessibility-20170105.html#wcag-a", "https://profile2"],
                 "certification": {
                     "certifiedBy": "company1",
@@ -277,23 +298,39 @@ class AccessibilityTest {
                 "accessModeSufficient": [["auditory"], ["visual", "tactile"], ["visual"]],
                 "feature": ["readingOrder", "alternativeText"],
                 "hazard": ["flashing", "motionSimulation"]
-            }"""),
+            }"""
+            ),
             Accessibility(
-                conformsTo = setOf(Accessibility.Profile.EPUB_A11Y_10_WCAG_20_A, Accessibility.Profile("https://profile2")),
+                conformsTo = setOf(
+                    Accessibility.Profile.EPUB_A11Y_10_WCAG_20_A,
+                    Accessibility.Profile("https://profile2")
+                ),
                 certification = Accessibility.Certification(
                     certifiedBy = "company1",
                     credential = "credential1",
                     report = "https://report1"
                 ),
                 summary = "Summary",
-                accessModes = setOf(Accessibility.AccessMode.AUDITORY, Accessibility.AccessMode.CHART_ON_VISUAL),
+                accessModes = setOf(
+                    Accessibility.AccessMode.AUDITORY,
+                    Accessibility.AccessMode.CHART_ON_VISUAL
+                ),
                 accessModesSufficient = setOf(
                     setOf(Accessibility.PrimaryAccessMode.AUDITORY),
-                    setOf(Accessibility.PrimaryAccessMode.VISUAL, Accessibility.PrimaryAccessMode.TACTILE),
+                    setOf(
+                        Accessibility.PrimaryAccessMode.VISUAL,
+                        Accessibility.PrimaryAccessMode.TACTILE
+                    ),
                     setOf(Accessibility.PrimaryAccessMode.VISUAL)
                 ),
-                features = setOf(Accessibility.Feature.READING_ORDER, Accessibility.Feature.ALTERNATIVE_TEXT),
-                hazards = setOf(Accessibility.Hazard.FLASHING, Accessibility.Hazard.MOTION_SIMULATION)
+                features = setOf(
+                    Accessibility.Feature.READING_ORDER,
+                    Accessibility.Feature.ALTERNATIVE_TEXT
+                ),
+                hazards = setOf(
+                    Accessibility.Hazard.FLASHING,
+                    Accessibility.Hazard.MOTION_SIMULATION
+                )
             ).toJSON()
         )
     }

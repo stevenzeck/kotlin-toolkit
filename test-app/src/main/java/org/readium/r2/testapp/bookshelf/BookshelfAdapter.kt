@@ -12,12 +12,11 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.squareup.picasso.Picasso
-import org.readium.r2.testapp.R
-import org.readium.r2.testapp.databinding.ItemRecycleBookBinding
-import org.readium.r2.testapp.domain.model.Book
-import org.readium.r2.testapp.utils.singleClick
 import java.io.File
-
+import org.readium.r2.testapp.R
+import org.readium.r2.testapp.data.model.Book
+import org.readium.r2.testapp.databinding.ItemRecycleBookBinding
+import org.readium.r2.testapp.utils.singleClick
 
 class BookshelfAdapter(
     private val onBookClick: (Book) -> Unit,
@@ -30,13 +29,14 @@ class BookshelfAdapter(
     ): ViewHolder {
         return ViewHolder(
             ItemRecycleBookBinding.inflate(
-                LayoutInflater.from(parent.context), parent, false
+                LayoutInflater.from(parent.context),
+                parent,
+                false
             )
         )
     }
 
     override fun onBindViewHolder(viewHolder: ViewHolder, position: Int) {
-
         val book = getItem(position)
 
         viewHolder.bind(book)
@@ -47,10 +47,8 @@ class BookshelfAdapter(
 
         fun bind(book: Book) {
             binding.bookshelfTitleText.text = book.title
-            val coverImageFile =
-                File("${binding.root.context?.filesDir?.path}/covers/${book.id}.png")
             Picasso.get()
-                .load(coverImageFile)
+                .load(File(book.cover))
                 .placeholder(R.drawable.cover)
                 .into(binding.bookshelfCoverImage)
             binding.root.singleClick {
@@ -76,11 +74,10 @@ class BookshelfAdapter(
             oldItem: Book,
             newItem: Book
         ): Boolean {
-            return oldItem.title == newItem.title
-                    && oldItem.href == newItem.href
-                    && oldItem.author == newItem.author
-                    && oldItem.identifier == newItem.identifier
+            return oldItem.title == newItem.title &&
+                oldItem.href == newItem.href &&
+                oldItem.author == newItem.author &&
+                oldItem.identifier == newItem.identifier
         }
     }
-
 }

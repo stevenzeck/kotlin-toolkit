@@ -1,16 +1,23 @@
 package org.readium.navigator.media2
 
-import org.junit.Assert.assertEquals
-import org.junit.Test
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
+import org.junit.Assert.assertEquals
+import org.junit.Test
 
 @OptIn(ExperimentalTime::class)
 class SmartSeekerTest {
 
     private val playlist: List<Duration> = listOf(
-        10, 20, 15, 800, 10, 230, 20, 10
+        10,
+        20,
+        15,
+        800,
+        10,
+        230,
+        20,
+        10
     ).map { it.seconds }
 
     private val forwardOffset = 50.seconds

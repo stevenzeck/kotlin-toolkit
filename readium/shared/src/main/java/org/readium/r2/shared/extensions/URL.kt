@@ -11,19 +11,23 @@ package org.readium.r2.shared.extensions
 
 import java.io.File
 import java.net.URL
+import org.readium.r2.shared.InternalReadiumApi
 
-fun URL.removeLastComponent(): URL {
+@InternalReadiumApi
+public fun URL.removeLastComponent(): URL {
     val lastPathComponent = path.split("/")
         .lastOrNull { it.isNotEmpty() }
         ?: return this
 
-    return URL(toString()
-        .removeSuffix("?$query")
-        .removeSuffix("/")
-        .removeSuffix(lastPathComponent)
+    return URL(
+        toString()
+            .removeSuffix("?$query")
+            .removeSuffix("/")
+            .removeSuffix(lastPathComponent)
     )
 }
 
 /** Returns the file extension of the URL. */
-val URL.extension: String? get() =
+@InternalReadiumApi
+public val URL.extension: String? get() =
     File(path).extension.ifBlank { null }

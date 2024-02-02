@@ -8,6 +8,7 @@ package org.readium.r2.shared.publication.services
 
 import android.content.ComponentCallbacks2
 import android.content.Context
+import kotlin.reflect.KClass
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -20,26 +21,25 @@ import org.readium.r2.shared.publication.ServiceFactory
 import org.readium.r2.shared.util.MemoryObserver
 import org.readium.r2.shared.util.cache.Cache
 import org.readium.r2.shared.util.cache.InMemoryCache
-import kotlin.reflect.KClass
 
 /**
  * Provides publication-bound caches.
  */
 @InternalReadiumApi
-interface CacheService : Publication.Service {
+public interface CacheService : Publication.Service {
     /**
      * Gets the cache for objects of [valueType] in the given [namespace].
      */
-    suspend fun <T : Any> cacheOf(valueType: KClass<T>, namespace: String): Cache<T>
+    public suspend fun <T : Any> cacheOf(valueType: KClass<T>, namespace: String): Cache<T>
 }
 
 @InternalReadiumApi
-val PublicationServicesHolder.cacheService: CacheService?
+public val PublicationServicesHolder.cacheService: CacheService?
     get() = findService(CacheService::class)
 
 /** Factory to build a [CacheService]. */
 @InternalReadiumApi
-var Publication.ServicesBuilder.cacheServiceFactory: ServiceFactory?
+public var Publication.ServicesBuilder.cacheServiceFactory: ServiceFactory?
     get() = get(CacheService::class)
     set(value) = set(CacheService::class, value)
 
@@ -47,10 +47,10 @@ var Publication.ServicesBuilder.cacheServiceFactory: ServiceFactory?
  * A basic [CacheService] implementation keeping the cached objects in memory.
  */
 @InternalReadiumApi
-class InMemoryCacheService(context: Context?) : CacheService, MemoryObserver {
+public class InMemoryCacheService(context: Context?) : CacheService, MemoryObserver {
 
-    companion object {
-        fun createFactory(context: Context?): (Publication.Service.Context) -> InMemoryCacheService = { _ ->
+    public companion object {
+        public fun createFactory(context: Context?): (Publication.Service.Context) -> InMemoryCacheService = { _ ->
             InMemoryCacheService(context)
         }
     }

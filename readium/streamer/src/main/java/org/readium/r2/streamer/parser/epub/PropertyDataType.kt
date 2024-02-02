@@ -31,7 +31,8 @@ internal enum class DEFAULT_VOCAB(val iri: String) {
 }
 
 internal fun resolveProperty(
-    property: String, prefixMap: Map<String, String>,
+    property: String,
+    prefixMap: Map<String, String>,
     defaultVocab: DEFAULT_VOCAB? = null
 ): String {
     val splitted = property.split(":", limit = 2).filterNot(String::isEmpty)
@@ -39,8 +40,9 @@ internal fun resolveProperty(
         defaultVocab.iri + splitted[0]
     } else if (splitted.size == 2 && prefixMap[splitted[0]] != null) {
         prefixMap[splitted[0]] + splitted[1]
-    } else
+    } else {
         property
+    }
 }
 
 internal fun parsePrefixes(prefixes: String): Map<String, String> =

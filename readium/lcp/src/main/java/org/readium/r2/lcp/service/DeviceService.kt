@@ -15,17 +15,24 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
-import org.readium.r2.lcp.license.model.LicenseDocument
-import org.readium.r2.lcp.license.model.components.Link
-import timber.log.Timber
 import java.io.Serializable
 import java.util.*
 import kotlin.time.ExperimentalTime
+import org.readium.r2.lcp.license.model.LicenseDocument
+import org.readium.r2.lcp.license.model.components.Link
+import timber.log.Timber
 
 @OptIn(ExperimentalTime::class)
-internal class DeviceService(private val repository: DeviceRepository, private val network: NetworkService, val context: Context):Serializable {
+internal class DeviceService(
+    private val repository: DeviceRepository,
+    private val network: NetworkService,
+    val context: Context
+) : Serializable {
 
-    private val preferences: SharedPreferences = context.getSharedPreferences("org.readium.r2.settings", Context.MODE_PRIVATE)
+    private val preferences: SharedPreferences = context.getSharedPreferences(
+        "org.readium.r2.settings",
+        Context.MODE_PRIVATE
+    )
 
     val id: String
         get() {
@@ -58,18 +65,16 @@ internal class DeviceService(private val repository: DeviceRepository, private v
     val asQueryParameters: URLParameters
         get() = mapOf("id" to id, "name" to name)
 
-
     suspend fun registerLicense(license: LicenseDocument, link: Link): ByteArray? {
         if (repository.isDeviceRegistered(license)) {
             return null
         }
 
-        val url = link.url(asQueryParameters).toString()
+        val url = link.url(parameters = asQueryParameters).toString()
         val data = network.fetch(url, NetworkService.Method.POST, asQueryParameters)
             .getOrNull() ?: return null
 
         repository.registerDevice(license)
         return data
     }
-
 }

@@ -54,32 +54,36 @@ class SearchFragment : Fragment(R.layout.fragment_search) {
             .onEach { binding.noResultLabel.isVisible = it.isEmpty() }
             .launchIn(viewScope)
 
-        viewModel.activityChannel
+        viewModel.searchChannel
             .receive(viewLifecycleOwner) { event ->
                 when (event) {
-                    ReaderViewModel.Event.StartNewSearch ->
+                    ReaderViewModel.SearchCommand.StartNewSearch ->
                         binding.searchRecyclerView.scrollToPosition(0)
-                    else -> {}
                 }
             }
 
         binding.searchRecyclerView.apply {
             adapter = searchAdapter
             layoutManager = LinearLayoutManager(activity)
-            addItemDecoration(SectionDecoration(context, object : SectionDecoration.Listener {
-                override fun isStartOfSection(itemPos: Int): Boolean =
-                    viewModel.searchLocators.value.run {
-                        when {
-                            itemPos == 0 -> true
-                            itemPos < 0 -> false
-                            itemPos >= size -> false
-                            else -> getOrNull(itemPos)?.title != getOrNull(itemPos-1)?.title
-                        }
-                    }
+            addItemDecoration(
+                SectionDecoration(
+                    context,
+                    object : SectionDecoration.Listener {
+                        override fun isStartOfSection(itemPos: Int): Boolean =
+                            viewModel.searchLocators.value.run {
+                                when {
+                                    itemPos == 0 -> true
+                                    itemPos < 0 -> false
+                                    itemPos >= size -> false
+                                    else -> getOrNull(itemPos)?.title != getOrNull(itemPos - 1)?.title
+                                }
+                            }
 
-                override fun sectionTitle(itemPos: Int): String =
-                    viewModel.searchLocators.value.getOrNull(itemPos)?.title ?: ""
-            }))
+                        override fun sectionTitle(itemPos: Int): String =
+                            viewModel.searchLocators.value.getOrNull(itemPos)?.title ?: ""
+                    }
+                )
+            )
             addItemDecoration(DividerItemDecoration(context, DividerItemDecoration.VERTICAL))
         }
     }

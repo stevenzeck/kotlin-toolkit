@@ -38,19 +38,23 @@ internal class PdfPositionsService(
             return@lazy listOf(emptyList<Locator>())
         }
 
-        return@lazy listOf((1..pageCount).map { position ->
-            val progression = (position - 1) / pageCount.toDouble()
-            Locator(
-                href = link.href,
-                type = link.type ?: MediaType.PDF.toString(),
-                locations = Locator.Locations(
-                    fragments = listOf("page=$position"),
-                    progression = progression,
-                    totalProgression = progression,
-                    position = position
+        val href = link.url()
+
+        return@lazy listOf(
+            (1..pageCount).map { position ->
+                val progression = (position - 1) / pageCount.toDouble()
+                Locator(
+                    href = href,
+                    mediaType = link.mediaType ?: MediaType.PDF,
+                    locations = Locator.Locations(
+                        fragments = listOf("page=$position"),
+                        progression = progression,
+                        totalProgression = progression,
+                        position = position
+                    )
                 )
-            )
-        })
+            }
+        )
     }
 
     companion object {
@@ -64,7 +68,5 @@ internal class PdfPositionsService(
                 tableOfContents = context.manifest.tableOfContents
             )
         }
-
     }
-
 }

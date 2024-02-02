@@ -10,6 +10,7 @@
 package org.readium.r2.shared.opds
 
 import android.os.Parcelable
+import java.util.*
 import kotlinx.parcelize.Parcelize
 import org.json.JSONObject
 import org.readium.r2.shared.JSONable
@@ -19,7 +20,6 @@ import org.readium.r2.shared.extensions.toIso8601String
 import org.readium.r2.shared.util.MapCompanion
 import org.readium.r2.shared.util.logging.WarningLogger
 import org.readium.r2.shared.util.logging.log
-import java.util.*
 
 /**
  * Indicated the availability of a given resource.
@@ -30,38 +30,37 @@ import java.util.*
  * @param until Timestamp for the next state change.
  */
 @Parcelize
-data class Availability(
+public data class Availability(
     val state: State,
     val since: Date? = null,
     val until: Date? = null
 ) : JSONable, Parcelable {
 
-    enum class State(val value: String) {
+    public enum class State(public val value: String) {
         AVAILABLE("available"),
         UNAVAILABLE("unavailable"),
         RESERVED("reserved"),
         READY("ready");
 
-        companion object : MapCompanion<String, State>(values(), State::value)
-
+        public companion object : MapCompanion<String, State>(values(), State::value)
     }
 
     /**
      * Serializes an [Availability] to its JSON representation.
      */
-    override fun toJSON() = JSONObject().apply {
+    override fun toJSON(): JSONObject = JSONObject().apply {
         put("state", state.value)
         put("since", since?.toIso8601String())
         put("until", until?.toIso8601String())
     }
 
-    companion object {
+    public companion object {
 
         /**
          * Creates an [Availability] from its JSON representation.
          * If the availability can't be parsed, a warning will be logged with [warnings].
          */
-        fun fromJSON(json: JSONObject?, warnings: WarningLogger? = null): Availability? {
+        public fun fromJSON(json: JSONObject?, warnings: WarningLogger? = null): Availability? {
             val state = State(json?.optNullableString("state"))
             if (state == null) {
                 warnings?.log(Availability::class.java, "[state] is required", json)
@@ -74,7 +73,5 @@ data class Availability(
                 until = json?.optNullableString("until")?.iso8601ToDate()
             )
         }
-
     }
-
 }

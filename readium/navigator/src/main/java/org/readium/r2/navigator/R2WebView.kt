@@ -11,6 +11,7 @@ package org.readium.r2.navigator
 
 import android.content.Context
 import android.graphics.Rect
+import android.os.Build
 import android.util.AttributeSet
 import android.view.*
 import android.view.animation.Interpolator
@@ -20,18 +21,18 @@ import androidx.annotation.CallSuper
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import kotlin.math.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.readium.r2.navigator.BuildConfig.DEBUG
 import timber.log.Timber
-import kotlin.math.*
 
 /**
  * Created by Aferdita Muriqi on 12/2/17.
  */
 
-class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context, attrs) {
+internal class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context, attrs) {
 
     init {
         initWebPager()
@@ -39,41 +40,36 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
 
     private val uiScope = CoroutineScope(Dispatchers.Main)
 
-    @android.webkit.JavascriptInterface
     override fun scrollRight(animated: Boolean) {
         super.scrollRight(animated)
         uiScope.launch {
             if (mCurItem < numPages - 1) {
                 mCurItem++
                 url?.let {
-                     listener.onPageChanged(mCurItem + 1, numPages, it)
+                    listener?.onPageChanged(mCurItem + 1, numPages, it)
                 }
             }
         }
     }
 
-    @android.webkit.JavascriptInterface
     override fun scrollLeft(animated: Boolean) {
         super.scrollLeft(animated)
         uiScope.launch {
             if (mCurItem > 0) {
                 mCurItem--
                 url?.let {
-                     listener.onPageChanged(mCurItem + 1, numPages, it)
+                    listener?.onPageChanged(mCurItem + 1, numPages, it)
                 }
             }
         }
     }
 
-    private val USE_CACHE = false
-
     private val MAX_SETTLE_DURATION = 600 // ms
     private val MIN_DISTANCE_FOR_FLING = 25 // dips
     private val MIN_FLING_VELOCITY = 400 // dips
 
-
     override fun getContentHeight(): Int {
-        return this.computeVerticalScrollRange() //working after load of page
+        return this.computeVerticalScrollRange() // working after load of page
     }
 
     internal class ItemInfo {
@@ -92,7 +88,7 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
 
     private val mTempRect = Rect()
 
-    internal var mCurItem: Int = 0   // Index of currently displayed page.
+    internal var mCurItem: Int = 0 // Index of currently displayed page.
 
     private var mScroller: Scroller? = null
     private var mIsScrollStarted: Boolean = false
@@ -107,8 +103,6 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
     // or end of the pager data set during touch scrolling.
     private val mFirstOffset = -java.lang.Float.MAX_VALUE
     private val mLastOffset = java.lang.Float.MAX_VALUE
-
-    private var mScrollingCacheEnabled: Boolean = false
 
     private var mIsBeingDragged: Boolean = false
     private var mGutterSize: Int = 30
@@ -137,6 +131,7 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
      * Determines speed during touch scrolling
      */
     private var mVelocityTracker: VelocityTracker? = null
+
     /** Initial velocity of the current movement. */
     private var mInitialVelocity: Int? = null
     private var mMinimumVelocity: Int = 0
@@ -190,7 +185,13 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
     private fun initWebPager() {
         setWillNotDraw(false)
         descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
-        isFocusable = true
+
+        // Disable the focus overlay appearing when interacting with the keyboard.
+        // https://developer.android.com/about/versions/oreo/android-8.0-changes#ian
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            defaultFocusHighlightEnabled = false
+        }
+
         val context = context
         mScroller = Scroller(context, sInterpolator)
         val configuration = ViewConfiguration.get(context)
@@ -206,61 +207,80 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
         mCloseEnough = (CLOSE_ENOUGH * density).toInt()
 
         if (ViewCompat.getImportantForAccessibility(this) == ViewCompat.IMPORTANT_FOR_ACCESSIBILITY_AUTO) {
-            ViewCompat.setImportantForAccessibility(this,
-                    ViewCompat.IMPORTANT_FOR_ACCESSIBILITY_YES)
+            ViewCompat.setImportantForAccessibility(
+                this,
+                ViewCompat.IMPORTANT_FOR_ACCESSIBILITY_YES
+            )
         }
 
-        ViewCompat.setOnApplyWindowInsetsListener(this,
-                object : androidx.core.view.OnApplyWindowInsetsListener {
-                    private val mTempRect = Rect()
+        ViewCompat.setOnApplyWindowInsetsListener(
+            this,
+            object : androidx.core.view.OnApplyWindowInsetsListener {
+                private val mTempRect = Rect()
 
-                    override fun onApplyWindowInsets(v: View,
-                                                     originalInsets: WindowInsetsCompat): WindowInsetsCompat {
-                        // First let the ViewPager itself try and consume them...
-                        val applied = ViewCompat.onApplyWindowInsets(v, originalInsets)
-                        if (applied.isConsumed) {
-                            // If the ViewPager consumed all insets, return now
-                            return applied
-                        }
-
-                        // Now we'll manually dispatch the insets to our children. Since ViewPager
-                        // children are always full-height, we do not want to use the standard
-                        // ViewGroup dispatchApplyWindowInsets since if child 0 consumes them,
-                        // the rest of the children will not receive any insets. To workaround this
-                        // we manually dispatch the applied insets, not allowing children to
-                        // consume them from each other. We do however keep track of any insets
-                        // which are consumed, returning the union of our children's consumption
-                        val res = mTempRect
-                        val insets = applied.getInsets(WindowInsetsCompat.Type.systemBars())
-                        res.left = insets.left
-                        res.top = insets.top
-                        res.right = insets.right
-                        res.bottom = insets.bottom
-
-                        var i = 0
-                        val count = childCount
-                        while (i < count) {
-                            val childInsets = ViewCompat
-                                    .dispatchApplyWindowInsets(getChildAt(i), applied).getInsets(WindowInsetsCompat.Type.systemBars())
-                            // Now keep track of any consumed by tracking each dimension's min
-                            // value
-                            res.left = min(childInsets.left,
-                                    res.left)
-                            res.top = min(childInsets.top,
-                                    res.top)
-                            res.right = min(childInsets.right,
-                                    res.right)
-                            res.bottom = min(childInsets.bottom,
-                                    res.bottom)
-                            i++
-                        }
-
-                        // Now return a new WindowInsets, using the consumed window insets
-                        return WindowInsetsCompat.Builder(applied)
-                            .setInsets(WindowInsetsCompat.Type.systemBars(), Insets.of(res.left, res.top, res.right, res.bottom))
-                            .build()
+                override fun onApplyWindowInsets(
+                    v: View,
+                    originalInsets: WindowInsetsCompat
+                ): WindowInsetsCompat {
+                    // First let the ViewPager itself try and consume them...
+                    val applied = ViewCompat.onApplyWindowInsets(v, originalInsets)
+                    if (applied.isConsumed) {
+                        // If the ViewPager consumed all insets, return now
+                        return applied
                     }
-                })
+
+                    // Now we'll manually dispatch the insets to our children. Since ViewPager
+                    // children are always full-height, we do not want to use the standard
+                    // ViewGroup dispatchApplyWindowInsets since if child 0 consumes them,
+                    // the rest of the children will not receive any insets. To workaround this
+                    // we manually dispatch the applied insets, not allowing children to
+                    // consume them from each other. We do however keep track of any insets
+                    // which are consumed, returning the union of our children's consumption
+                    val res = mTempRect
+                    val insets = applied.getInsets(WindowInsetsCompat.Type.systemBars())
+                    res.left = insets.left
+                    res.top = insets.top
+                    res.right = insets.right
+                    res.bottom = insets.bottom
+
+                    var i = 0
+                    val count = childCount
+                    while (i < count) {
+                        val childInsets = ViewCompat
+                            .dispatchApplyWindowInsets(getChildAt(i), applied).getInsets(
+                                WindowInsetsCompat.Type.systemBars()
+                            )
+                        // Now keep track of any consumed by tracking each dimension's min
+                        // value
+                        res.left = min(
+                            childInsets.left,
+                            res.left
+                        )
+                        res.top = min(
+                            childInsets.top,
+                            res.top
+                        )
+                        res.right = min(
+                            childInsets.right,
+                            res.right
+                        )
+                        res.bottom = min(
+                            childInsets.bottom,
+                            res.bottom
+                        )
+                        i++
+                    }
+
+                    // Now return a new WindowInsets, using the consumed window insets
+                    return WindowInsetsCompat.Builder(applied)
+                        .setInsets(
+                            WindowInsetsCompat.Type.systemBars(),
+                            Insets.of(res.left, res.top, res.right, res.bottom)
+                        )
+                        .build()
+                }
+            }
+        )
     }
 
     override fun onDetachedFromWindow() {
@@ -341,11 +361,9 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
 
         if (post) {
             url?.let {
-                 listener.onPageChanged(item + 1, numPages, it)
+                listener?.onPageChanged(item + 1, numPages, it)
             }
         }
-
-
     }
 
     // We want the duration of the page snap animation to be influenced by the distance that
@@ -358,7 +376,6 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
         float *= 0.3f * Math.PI.toFloat() / 2.0f
         return sin(float.toDouble()).toFloat()
     }
-
 
     /**
      * Like [View.scrollBy], but scroll smoothly instead of immediately.
@@ -381,7 +398,6 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
             sx = if (mIsScrollStarted) mScroller!!.currX else mScroller!!.startX
             // And abort the current scrolling.
             mScroller!!.abortAnimation()
-            setScrollingCacheEnabled(false)
         } else {
             sx = scrollX
         }
@@ -394,7 +410,6 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
             return
         }
 
-        setScrollingCacheEnabled(true)
         setScrollState(SCROLL_STATE_SETTLING)
 
         val halfWidth = width / 2
@@ -420,7 +435,6 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
     }
 
     private fun infoForPosition(position: Int): ItemInfo {
-
         val ii = ItemInfo()
         ii.position = position
         ii.offset = (position * (1 / numPages)).toFloat()
@@ -493,8 +507,10 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
                             childLeft = paddingLeft
                             paddingLeft += child.measuredWidth
                         }
-                        Gravity.CENTER_HORIZONTAL -> childLeft = max((width - child.measuredWidth) / 2,
-                                paddingLeft)
+                        Gravity.CENTER_HORIZONTAL -> childLeft = max(
+                            (width - child.measuredWidth) / 2,
+                            paddingLeft
+                        )
                         Gravity.END -> {
                             childLeft = width - paddingRight - child.measuredWidth
                             paddingRight += child.measuredWidth
@@ -506,8 +522,10 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
                             childTop = paddingTop
                             paddingTop += child.measuredHeight
                         }
-                        Gravity.CENTER_VERTICAL -> childTop = max((height - child.measuredHeight) / 2,
-                                paddingTop)
+                        Gravity.CENTER_VERTICAL -> childTop = max(
+                            (height - child.measuredHeight) / 2,
+                            paddingTop
+                        )
                         Gravity.BOTTOM -> {
                             childTop = height - paddingBottom - child.measuredHeight
                             paddingBottom += child.measuredHeight
@@ -515,9 +533,12 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
                         else -> childTop = paddingTop
                     }
                     childLeft += scrollX
-                    child.layout(childLeft, childTop,
-                            childLeft + child.measuredWidth,
-                            childTop + child.measuredHeight)
+                    child.layout(
+                        childLeft,
+                        childTop,
+                        childLeft + child.measuredWidth,
+                        childTop + child.measuredHeight
+                    )
                     decorCount++
                 }
             }
@@ -534,6 +555,10 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
     }
 
     override fun computeScroll() {
+        if (scrollMode) {
+            return super.computeScroll()
+        }
+
         mIsScrollStarted = true
         if (!mScroller!!.isFinished && mScroller!!.computeScrollOffset()) {
             val oldX = scrollX
@@ -572,7 +597,8 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
         onPageScrolled(currentPage, pageOffset, offsetPixels)
         if (!mCalledSuper) {
             throw IllegalStateException(
-                    "onPageScrolled did not call superclass implementation")
+                "onPageScrolled did not call superclass implementation"
+            )
         }
         return true
     }
@@ -611,8 +637,10 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
                         childLeft = paddingLeft
                         paddingLeft += child.width
                     }
-                    Gravity.CENTER_HORIZONTAL -> childLeft = max((width - child.measuredWidth) / 2,
-                            paddingLeft)
+                    Gravity.CENTER_HORIZONTAL -> childLeft = max(
+                        (width - child.measuredWidth) / 2,
+                        paddingLeft
+                    )
                     Gravity.END -> {
                         childLeft = width - paddingRight - child.measuredWidth
                         paddingRight += child.measuredWidth
@@ -631,12 +659,9 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
         mCalledSuper = true
     }
 
-
     private fun completeScroll(postEvents: Boolean) {
         val needPopulate = mScrollState == SCROLL_STATE_SETTLING
         if (needPopulate) {
-            // Done with scroll, no longer want to cache view drawing.
-            setScrollingCacheEnabled(false)
             val wasScrolling = !mScroller!!.isFinished
             if (wasScrolling) {
                 mScroller!!.abortAnimation()
@@ -662,7 +687,6 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
     }
 
     override fun onTouchEvent(ev: MotionEvent): Boolean {
-
         if (mVelocityTracker == null) {
             mVelocityTracker = VelocityTracker.obtain()
         }
@@ -670,7 +694,6 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
 
         val action = ev.action
         when (action and MotionEvent.ACTION_MASK) {
-
             MotionEvent.ACTION_DOWN -> {
                 mScroller?.let { scroller ->
                     mHasAbortedScroller = !scroller.isFinished
@@ -692,18 +715,18 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
                 if (!isSelecting && !mIsBeingDragged) {
                     mInitialVelocity = getCurrentXVelocity()
                     val pointerIndex = ev.findPointerIndex(mActivePointerId)
-                    val x = ev.getX(pointerIndex)
+                    val x = ev.safeGetX(pointerIndex)
                     val xDiff = abs(x - mLastMotionX)
 
                     if (xDiff > mTouchSlop) {
                         if (DEBUG) Timber.v("Starting drag!")
                         mIsBeingDragged = true
-                        mLastMotionX = if (x - mInitialMotionX > 0)
+                        mLastMotionX = if (x - mInitialMotionX > 0) {
                             mInitialMotionX + mTouchSlop
-                        else
+                        } else {
                             mInitialMotionX - mTouchSlop
+                        }
                         setScrollState(SCROLL_STATE_DRAGGING)
-                        setScrollingCacheEnabled(true)
                     }
                 }
             }
@@ -713,8 +736,8 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
                     mHasAbortedScroller = false
 
                     val activePointerIndex = ev.findPointerIndex(mActivePointerId)
-                    val x = ev.getX(activePointerIndex)
-                    val y = ev.getY(activePointerIndex)
+                    val x = ev.safeGetX(activePointerIndex)
+                    val y = ev.safeGetY(activePointerIndex)
 
                     if (scrollMode) {
                         val totalDelta = (y - mInitialMotionY).toInt()
@@ -763,19 +786,18 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
             }
             MotionEvent.ACTION_POINTER_DOWN -> {
                 val index = ev.actionIndex
-                val x = ev.getX(index)
+                val x = ev.safeGetX(index)
                 mLastMotionX = x
                 mActivePointerId = ev.getPointerId(index)
             }
             MotionEvent.ACTION_POINTER_UP -> {
                 onSecondaryPointerUp(ev)
-                mLastMotionX = ev.getX(ev.findPointerIndex(mActivePointerId))
+                mLastMotionX = ev.safeGetX(ev.findPointerIndex(mActivePointerId))
             }
         }
 
         return super.onTouchEvent(ev)
     }
-
 
     /**
      * @return Info about the page at the current scroll position.
@@ -828,19 +850,26 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
         return lastItem
     }
 
-    private fun determineTargetPage(currentPage: Int, initialVelocity: Int, currentVelocity: Int, deltaX: Int): Int {
+    private fun determineTargetPage(
+        currentPage: Int,
+        initialVelocity: Int,
+        currentVelocity: Int,
+        deltaX: Int
+    ): Int {
         // If the initialVelocity and currentVelocity don't have the same sign, it means the user
         // reversed the drag direction. In which case we consider this as a cancellation.
         val isCancelled = (initialVelocity * currentVelocity) <= 0
 
         return if (!isCancelled && abs(deltaX) > mFlingDistance && abs(currentVelocity) > mMinimumVelocity) {
-            if (currentVelocity >= 0) currentPage - 1
-            else currentPage + 1
+            if (currentVelocity >= 0) {
+                currentPage - 1
+            } else {
+                currentPage + 1
+            }
         } else {
             currentPage
         }
     }
-
 
     private fun onSecondaryPointerUp(ev: MotionEvent) {
         val pointerIndex = ev.actionIndex
@@ -849,24 +878,9 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
             // This was our active pointer going up. Choose a new
             // active pointer and adjust accordingly.
             val newPointerIndex = if (pointerIndex == 0) 1 else 0
-            mLastMotionX = ev.getX(newPointerIndex)
+            mLastMotionX = ev.safeGetX(newPointerIndex)
             mActivePointerId = ev.getPointerId(newPointerIndex)
             mVelocityTracker?.clear()
-        }
-    }
-
-    private fun setScrollingCacheEnabled(enabled: Boolean) {
-        if (mScrollingCacheEnabled != enabled) {
-            mScrollingCacheEnabled = enabled
-            if (USE_CACHE) {
-                val size = childCount
-                for (i in 0 until size) {
-                    val child = getChildAt(i)
-                    if (child.visibility != View.GONE) {
-                        child.isDrawingCacheEnabled = enabled
-                    }
-                }
-            }
         }
     }
 
@@ -892,7 +906,10 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
                 } else {
                     arrowScroll(View.FOCUS_LEFT)
                 }
-                KeyEvent.KEYCODE_DPAD_RIGHT -> handled = if (event.hasModifiers(KeyEvent.META_ALT_ON)) {
+                KeyEvent.KEYCODE_DPAD_RIGHT -> handled = if (event.hasModifiers(
+                        KeyEvent.META_ALT_ON
+                    )
+                ) {
                     pageRight()
                 } else {
                     arrowScroll(View.FOCUS_RIGHT)
@@ -939,15 +956,23 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
                     sb.append(" => ").append(parent.javaClass.simpleName)
                     parent = parent.parent
                 }
-                if (DEBUG) Timber.e("arrowScroll tried to find focus based on non-child current focused view %s", sb.toString())
+                if (DEBUG) {
+                    Timber.e(
+                        "arrowScroll tried to find focus based on non-child current focused view %s",
+                        sb.toString()
+                    )
+                }
                 currentFocused = null
             }
         }
 
         var handled = false
 
-        val nextFocused = FocusFinder.getInstance().findNextFocus(this, currentFocused,
-                direction)
+        val nextFocused = FocusFinder.getInstance().findNextFocus(
+            this,
+            currentFocused,
+            direction
+        )
         if (nextFocused != null && nextFocused !== currentFocused) {
             if (direction == View.FOCUS_LEFT) {
                 // If there is nothing to the left, or this is causing us to
@@ -1052,7 +1077,6 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
          */
         var gravity: Int = 0
 
-
         /**
          * Adapter position this view is for if !isDecor
          */
@@ -1068,3 +1092,15 @@ class R2WebView(context: Context, attrs: AttributeSet) : R2BasicWebView(context,
         }
     }
 }
+
+/**
+ * May crash with java.lang.IllegalArgumentException: pointerIndex out of range
+ */
+private fun MotionEvent.safeGetX(pointerIndex: Int): Float =
+    try { getX(pointerIndex) } catch (e: IllegalArgumentException) { 0F }
+
+/**
+ * May crash with java.lang.IllegalArgumentException: pointerIndex out of range
+ */
+private fun MotionEvent.safeGetY(pointerIndex: Int): Float =
+    try { getY(pointerIndex) } catch (e: IllegalArgumentException) { 0F }

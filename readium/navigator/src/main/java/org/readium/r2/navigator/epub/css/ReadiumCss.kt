@@ -10,17 +10,19 @@ import android.net.Uri
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
-import org.readium.r2.navigator.settings.FontFamily
+import org.readium.r2.navigator.preferences.FontFamily
+import org.readium.r2.navigator.preferences.ReadingProgression
 import org.readium.r2.shared.ExperimentalReadiumApi
-import org.readium.r2.shared.publication.ReadingProgression
+import org.readium.r2.shared.util.Url
 
 @ExperimentalReadiumApi
 internal data class ReadiumCss(
     val layout: Layout = Layout(language = null, Layout.Stylesheets.Default, ReadingProgression.LTR),
     val rsProperties: RsProperties = RsProperties(),
     val userProperties: UserProperties = UserProperties(),
-    val fontFamilies: List<FontFamilyDeclaration> = emptyList(),
-    val assetsBaseHref: String
+    val fontFamilyDeclarations: List<FontFamilyDeclaration> = emptyList(),
+    val googleFonts: List<FontFamily> = emptyList(),
+    val assetsBaseHref: Url
 ) {
 
     /**
@@ -45,64 +47,85 @@ internal data class ReadiumCss(
      */
     private fun injectStyles(content: StringBuilder) {
         val hasStyles = content.hasStyles()
-        val assetsBaseHref = assetsBaseHref.removeSuffix("/")
-        val stylesheetsFolder = assetsBaseHref + "/readium/readium-css/" + (layout.stylesheets.folder?.plus("/") ?: "")
 
         val headBeforeIndex = content.indexForOpeningTag("head")
-        content.insert(headBeforeIndex, "\n" + buildList {
-            add(stylesheetLink(stylesheetsFolder + "ReadiumCSS-before.css"))
+        content.insert(
+            headBeforeIndex,
+            "\n" + buildList {
+                addAll(fontsInjectableLinks)
 
-            // Fix Readium CSS issue with the positioning of <audio> elements.
-            // https://github.com/readium/readium-css/issues/94
-            // https://github.com/readium/r2-navigator-kotlin/issues/193
-            add("<style>audio[controls] { width: revert; height: revert; }</style>")
+                add(stylesheetLink(beforeCss))
 
-            if (!hasStyles) {
-                add(stylesheetLink(stylesheetsFolder + "ReadiumCSS-default.css"))
-            }
-        }.joinToString("\n") + "\n")
+                // Fix Readium CSS issue with the positioning of <audio> elements.
+                // https://github.com/readium/readium-css/issues/94
+                // https://github.com/readium/r2-navigator-kotlin/issues/193
+                add("<style>audio[controls] { width: revert; height: revert; }</style>")
+
+                // Fix broken pagination when a book contains `overflow-x: hidden`.
+                // https://github.com/readium/kotlin-toolkit/issues/292
+                // Inspired by https://github.com/readium/readium-css/issues/119#issuecomment-1302348238
+                add(
+                    """
+                <style>
+                    :root[style], :root { overflow: visible !important; }
+                    :root[style] > body, :root > body { overflow: visible !important; }
+                </style>
+                    """.trimMargin()
+                )
+
+                if (!hasStyles) {
+                    add(stylesheetLink(defaultCss))
+                }
+            }.joinToString("\n") + "\n"
+        )
 
         val endHeadIndex = content.indexForClosingTag("head")
-        content.insert(endHeadIndex, "\n" + buildList {
-            add(stylesheetLink(stylesheetsFolder + "ReadiumCSS-after.css"))
+        content.insert(
+            endHeadIndex,
+            "\n" + buildList {
+                add(stylesheetLink(afterCss))
 
-            if (fontInjectables.isNotEmpty()) {
-                add("""
+                if (fontsInjectableCss.isNotEmpty()) {
+                    add(
+                        """
                     <style type="text/css">
-                    ${fontInjectables.joinToString("\n")}
+                    ${fontsInjectableCss.joinToString("\n")}
                     </style>
-                """.trimIndent())
-            }
-        }.joinToString("\n") + "\n")
+                        """.trimIndent()
+                    )
+                }
+            }.joinToString("\n") + "\n"
+        )
+    }
+
+    private val stylesheetsFolder by lazy {
+        assetsBaseHref.resolve(
+            Url("readium/readium-css/${layout.stylesheets.folder?.plus("/") ?: ""}")!!
+        )
+    }
+
+    private val beforeCss by lazy {
+        stylesheetsFolder.resolve(Url("ReadiumCSS-before.css")!!)
+    }
+
+    private val afterCss by lazy {
+        stylesheetsFolder.resolve(Url("ReadiumCSS-after.css")!!)
+    }
+
+    private val defaultCss by lazy {
+        stylesheetsFolder.resolve(Url("ReadiumCSS-default.css")!!)
     }
 
     /**
      * Generates the font face declarations from the declared font families.
      */
-    private val fontInjectables: List<String> by lazy {
-        val assetsBaseHref = assetsBaseHref.removeSuffix("/")
-
+    private val fontsInjectableCss: List<String> by lazy {
         buildList {
-            val googleFonts = mutableListOf<FontFamily>()
-
-            for (declaration in fontFamilies) {
-                when (val source = declaration.source) {
-                    // No-op, shipped with Android.
-                    FontFamilySource.System -> {}
-
-                    // No-op, already declared in Readium CSS stylesheets.
-                    FontFamilySource.ReadiumCss -> {}
-
-                    FontFamilySource.GoogleFonts -> {
-                        googleFonts.add(declaration.fontFamily)
-                    }
-
-                    is FontFamilySource.Assets -> {
-                        val href = assetsBaseHref + "/" + source.path.removePrefix("/")
-                        add("""@font-face { font-family: "${declaration.fontFamily.name}"; src: url("$href"); }""")
-                    }
-                }
-            }
+            addAll(
+                fontFamilyDeclarations
+                    .flatMap { it.fontFaces }
+                    .map { it.toCss(::normalizeAssetUrl) }
+            )
 
             if (googleFonts.isNotEmpty()) {
                 val families = googleFonts.joinToString("|") { it.name }
@@ -119,18 +142,29 @@ internal data class ReadiumCss(
         }
     }
 
+    private val fontsInjectableLinks: List<String> by lazy {
+        fontFamilyDeclarations
+            .flatMap { it.fontFaces }
+            .flatMap { it.links(::normalizeAssetUrl) }
+    }
+
+    private fun normalizeAssetUrl(url: Url): Url =
+        assetsBaseHref.resolve(url)
+
     /**
      * Returns whether the [String] receiver has any CSS styles.
      *
      * https://github.com/readium/readium-css/blob/develop/docs/CSS06-stylesheets_order.md#append-if-there-is-no-authors-styles
      */
     private fun CharSequence.hasStyles(): Boolean {
-        return indexOf("<link ", 0, true) != -1
-            || indexOf(" style=", 0, true) != -1
-            || Regex("<style.*?>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)).containsMatchIn(this)
+        return indexOf("<link ", 0, true) != -1 ||
+            indexOf(" style=", 0, true) != -1 ||
+            Regex("<style.*?>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)).containsMatchIn(
+                this
+            )
     }
 
-    private fun stylesheetLink(href: String): String =
+    private fun stylesheetLink(href: Url): String =
         """<link rel="stylesheet" type="text/css" href="$href"/>"""
 
     /**
@@ -191,7 +225,10 @@ internal data class ReadiumCss(
 
         val body = document.body()
         if (body.hasLang()) {
-            content.insert(content.indexForTagAttributes("html"), " xml:lang=\"${body.lang() ?: language}\"")
+            content.insert(
+                content.indexForTagAttributes("html"),
+                " xml:lang=\"${body.lang() ?: language}\""
+            )
         } else {
             val injectable = " xml:lang=\"$language\""
             content.insert(content.indexForTagAttributes("html"), injectable)
@@ -204,7 +241,7 @@ internal data class ReadiumCss(
             Regex("""<$tag.*?>""", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
                 .find(this, 0)
                 ?: throw IllegalArgumentException("No <$tag> opening tag found in this resource")
-        ).range.last + 1
+            ).range.last + 1
 
     private fun CharSequence.indexForClosingTag(tag: String): Int =
         indexOf("</$tag>", 0, true)
@@ -216,7 +253,10 @@ internal data class ReadiumCss(
             indexOf("<$tag", 0, true)
                 .takeIf { it != -1 }
                 ?: throw IllegalArgumentException("No <$tag> opening tag found in this resource")
-        ) + tag.length + 1
+            ) + tag.length + 1
 }
 
-private val dirRegex = Regex("""(<(?:html|body)[^\>]*)\s+dir=[\"']\w*[\"']""", setOf(RegexOption.IGNORE_CASE, RegexOption.MULTILINE))
+private val dirRegex = Regex(
+    """(<(?:html|body)[^\>]*)\s+dir=[\"']\w*[\"']""",
+    setOf(RegexOption.IGNORE_CASE, RegexOption.MULTILINE)
+)

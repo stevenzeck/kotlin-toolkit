@@ -16,18 +16,22 @@ import android.graphics.Matrix
 import android.graphics.PointF
 import android.graphics.RectF
 import android.util.AttributeSet
-import android.view.*
+import android.view.GestureDetector
+import android.view.MotionEvent
+import android.view.ScaleGestureDetector
+import android.view.View
+import android.view.ViewTreeObserver
 import android.view.animation.DecelerateInterpolator
 import android.view.animation.Interpolator
 import android.widget.FrameLayout
 import androidx.core.view.ViewCompat
-import com.shopgun.android.utils.NumberUtils
-import java.util.*
+import java.util.Locale
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
+import org.readium.r2.shared.extensions.equalsDelta
 
-class R2FXLLayout : FrameLayout {
+internal class R2FXLLayout : FrameLayout {
 
     private var scaleDetector: ScaleGestureDetector? = null
     private var gestureDetector: GestureDetector? = null
@@ -63,8 +67,10 @@ class R2FXLLayout : FrameLayout {
 
     // allow parent views to intercept any touch events that we do not consume
     var isAllowParentInterceptOnEdge = true
+
     // allow parent views to intercept any touch events that we do not consume even if we are in a scaled state
     var isAllowParentInterceptOnScaled = false
+
     // minimum scale of the content
     var minScale = 1.0f
         set(minScale) {
@@ -73,6 +79,7 @@ class R2FXLLayout : FrameLayout {
                 maxScale = this.minScale
             }
         }
+
     // maximum scale of the content
     var maxScale = 3.0f
         set(maxScale) {
@@ -99,7 +106,7 @@ class R2FXLLayout : FrameLayout {
         set(scale) = setScale(scale, true)
 
     val isScaled: Boolean
-        get() = !NumberUtils.isEqual(scale, 1.0f, 0.05f)
+        get() = !scale.equalsDelta(1.0f, 0.05f)
 
     private val translateDeltaBounds: RectF
         get() {
@@ -177,7 +184,11 @@ class R2FXLLayout : FrameLayout {
         init(context)
     }
 
-    constructor(context: Context, attrs: AttributeSet, defStyleAttr: Int) : super(context, attrs, defStyleAttr) {
+    constructor(context: Context, attrs: AttributeSet, defStyleAttr: Int) : super(
+        context,
+        attrs,
+        defStyleAttr
+    ) {
         init(context)
     }
 
@@ -238,7 +249,9 @@ class R2FXLLayout : FrameLayout {
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
         return if (isScrollingAllowed) {
             super.onInterceptTouchEvent(ev)
-        } else isAllowZoom
+        } else {
+            isAllowZoom
+        }
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -295,8 +308,7 @@ class R2FXLLayout : FrameLayout {
                 dispatchOnLongTap(e)
             }
         }
-
-        override fun onScroll(e1: MotionEvent, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
+        override fun onScroll(e1: MotionEvent?, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
             var consumed = false
             if (e2.pointerCount == 1 && !scaleDetector!!.isInProgress) {
                 // only drag if we have one pointer and aren't already scaling
@@ -315,10 +327,10 @@ class R2FXLLayout : FrameLayout {
             return consumed
         }
 
-        override fun onFling(e1: MotionEvent, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+        override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
             val scale = scale
-            val newScale = NumberUtils.clamp(minScale, scale, maxScale)
-            if (NumberUtils.isEqual(newScale, scale)) {
+            val newScale = scale.coerceIn(minScale, maxScale)
+            if (newScale.equalsDelta(scale)) {
                 // only fling if no scale is needed - scale will happen on ACTION_UP
                 flingRunnable = FlingRunnable(context)
                 flingRunnable!!.fling(velocityX.toInt(), velocityY.toInt())
@@ -329,7 +341,6 @@ class R2FXLLayout : FrameLayout {
         }
 
         override fun onShowPress(e: MotionEvent) {
-
         }
 
         override fun onDown(e: MotionEvent): Boolean {
@@ -363,8 +374,9 @@ class R2FXLLayout : FrameLayout {
         override fun onScale(detector: ScaleGestureDetector): Boolean {
             val scale = scale * detector.scaleFactor
             val scaleFactor = detector.scaleFactor
-            if (java.lang.Float.isNaN(scaleFactor) || java.lang.Float.isInfinite(scaleFactor))
+            if (java.lang.Float.isNaN(scaleFactor) || java.lang.Float.isInfinite(scaleFactor)) {
                 return false
+            }
 
             internalScale(scale, focusX, focusY)
             zoomDispatcher.onZoom(scale)
@@ -424,7 +436,7 @@ class R2FXLLayout : FrameLayout {
         }
         fixFocusPoint(focusX, focusY)
         if (!isAllowOverScale) {
-            newScale = NumberUtils.clamp(minScale, newScale, maxScale)
+            newScale = newScale.coerceIn(minScale, maxScale)
         }
         if (animate) {
             animatedZoomRunnable = AnimatedZoomRunnable()
@@ -443,12 +455,12 @@ class R2FXLLayout : FrameLayout {
         var tdy = dy
         if (clamp) {
             val bounds = translateDeltaBounds
-            tdx = NumberUtils.clamp(bounds.left, dx, bounds.right)
-            tdy = NumberUtils.clamp(bounds.top, dy, bounds.bottom)
+            tdx = dx.coerceIn(bounds.left, bounds.right)
+            tdy = dy.coerceIn(bounds.top, bounds.bottom)
         }
         val destPosX = tdx + posX
         val destPosY = tdy + posY
-        if (!NumberUtils.isEqual(destPosX, posX) || !NumberUtils.isEqual(destPosY, posY)) {
+        if (!destPosX.equalsDelta(posX) || !destPosY.equalsDelta(posY)) {
             translateMatrix.setTranslate(-destPosX, -destPosY)
             matrixUpdated()
             invalidate()
@@ -482,7 +494,13 @@ class R2FXLLayout : FrameLayout {
 
         val child = getChildAt(0)
         if (child != null) {
-            R2FXLUtils.setRect(drawRect, child.left.toFloat(), child.top.toFloat(), child.right.toFloat(), child.bottom.toFloat())
+            R2FXLUtils.setRect(
+                drawRect,
+                child.left.toFloat(),
+                child.top.toFloat(),
+                child.right.toFloat(),
+                child.bottom.toFloat()
+            )
             scaledPointsToScreenPoints(drawRect)
         } else {
             // If no child is added, then center the drawrect, and let it be empty
@@ -519,16 +537,16 @@ class R2FXLLayout : FrameLayout {
         private var mTargetY: Float = 0.toFloat()
 
         internal fun doScale(): Boolean {
-            return !NumberUtils.isEqual(mZoomStart, mZoomEnd)
+            return !mZoomStart.equalsDelta(mZoomEnd)
         }
 
         internal fun doTranslate(): Boolean {
-            return !NumberUtils.isEqual(mStartX, mTargetX) || !NumberUtils.isEqual(mStartY, mTargetY)
+            return !mStartX.equalsDelta(mTargetX) || !mStartY.equalsDelta(mTargetY)
         }
 
         internal fun runValidation(): Boolean {
             val scale = scale
-            val newScale = NumberUtils.clamp(minScale, scale, maxScale)
+            val newScale = scale.coerceIn(minScale, maxScale)
             scale(scale, newScale, focusX, focusY, true)
             if (animatedZoomRunnable!!.doScale() || animatedZoomRunnable!!.doTranslate()) {
                 ViewCompat.postOnAnimation(this@R2FXLLayout, animatedZoomRunnable!!)
@@ -537,7 +555,13 @@ class R2FXLLayout : FrameLayout {
             return false
         }
 
-        internal fun scale(currentZoom: Float, targetZoom: Float, focalX: Float, focalY: Float, ensureTranslations: Boolean): AnimatedZoomRunnable {
+        internal fun scale(
+            currentZoom: Float,
+            targetZoom: Float,
+            focalX: Float,
+            focalY: Float,
+            ensureTranslations: Boolean
+        ): AnimatedZoomRunnable {
             mFocalX = focalX
             mFocalY = focalY
             mZoomStart = currentZoom
@@ -557,7 +581,12 @@ class R2FXLLayout : FrameLayout {
                 mTargetX = p.x
                 mTargetY = p.y
                 if (scale) {
-                    scaleMatrix.setScale(mZoomStart, mZoomStart, this@R2FXLLayout.focusX, this@R2FXLLayout.focusY)
+                    scaleMatrix.setScale(
+                        mZoomStart,
+                        mZoomStart,
+                        this@R2FXLLayout.focusX,
+                        this@R2FXLLayout.focusY
+                    )
                     matrixUpdated()
                 }
                 if (doTranslate()) {
@@ -585,7 +614,6 @@ class R2FXLLayout : FrameLayout {
         }
 
         override fun run() {
-
             if (mCancelled || !doScale() && !doTranslate()) {
                 return
             }
@@ -615,7 +643,6 @@ class R2FXLLayout : FrameLayout {
             t = min(1f, t)
             return animationInterpolator.getInterpolation(t)
         }
-
     }
 
     private inner class FlingRunnable internal constructor(context: Context) : Runnable {
@@ -626,7 +653,6 @@ class R2FXLLayout : FrameLayout {
         private var mFinished = false
 
         internal fun fling(velocityX: Int, velocityY: Int) {
-
             val startX = viewPortRect.left.roundToInt()
             val minX: Int
             val maxX: Int
@@ -658,7 +684,6 @@ class R2FXLLayout : FrameLayout {
             } else {
                 mFinished = true
             }
-
         }
 
         internal fun cancelFling() {
@@ -675,7 +700,6 @@ class R2FXLLayout : FrameLayout {
 
         override fun run() {
             if (!mScroller.isFinished && mScroller.computeScrollOffset()) {
-
                 val newX = mScroller.currX
                 val newY = mScroller.currY
 
@@ -824,8 +848,10 @@ class R2FXLLayout : FrameLayout {
         }
 
         override fun toString(): String {
-            return String.format(Locale.US, STRING_FORMAT,
-                    x, y, relativeX, relativeY, percentX, percentY, isContentClicked)
+            return String.format(
+                Locale.US, STRING_FORMAT,
+                x, y, relativeX, relativeY, percentX, percentY, isContentClicked
+            )
         }
 
         companion object {
@@ -947,7 +973,6 @@ class R2FXLLayout : FrameLayout {
                 internalMove(p.x, p.y, false)
             }
         }
-
     }
 
     companion object {
@@ -959,5 +984,4 @@ class R2FXLLayout : FrameLayout {
             obs.removeOnGlobalLayoutListener(listener)
         }
     }
-
 }

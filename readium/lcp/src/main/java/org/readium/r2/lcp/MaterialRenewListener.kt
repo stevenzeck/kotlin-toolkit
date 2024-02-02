@@ -12,12 +12,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.fragment.app.FragmentManager
 import com.google.android.material.datepicker.*
-import kotlinx.coroutines.suspendCancellableCoroutine
-import java.net.URL
 import java.util.*
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+import kotlinx.coroutines.suspendCancellableCoroutine
+import org.readium.r2.shared.util.Url
 
 /**
  * A default implementation of the [LcpLicense.RenewListener] using Chrome Custom Tabs for
@@ -31,7 +31,7 @@ import kotlin.coroutines.suspendCoroutine
  * @param caller Activity or Fragment used to register the ActivityResultLauncher.
  * @param fragmentManager FragmentManager used to present the date picker.
  */
-class MaterialRenewListener(
+public class MaterialRenewListener(
     private val license: LcpLicense,
     private val caller: ActivityResultCaller,
     private val fragmentManager: FragmentManager
@@ -42,18 +42,24 @@ class MaterialRenewListener(
         val end = maximumDate?.time
 
         MaterialDatePicker.Builder.datePicker()
-            .setCalendarConstraints(CalendarConstraints.Builder().apply {
-                // Restricts the choice between the license expiration date and the given
-                // maximumDate.
-                setStart(start)
-                if (end != null) {
-                    setEnd(end)
-                }
-                setValidator(CompositeDateValidator.allOf(listOfNotNull(
-                    DateValidatorPointForward.from(start),
-                    end?.let { DateValidatorPointBackward.before(end) }
-                )))
-            }.build())
+            .setCalendarConstraints(
+                CalendarConstraints.Builder().apply {
+                    // Restricts the choice between the license expiration date and the given
+                    // maximumDate.
+                    setStart(start)
+                    if (end != null) {
+                        setEnd(end)
+                    }
+                    setValidator(
+                        CompositeDateValidator.allOf(
+                            listOfNotNull(
+                                DateValidatorPointForward.from(start),
+                                end?.let { DateValidatorPointBackward.before(end) }
+                            )
+                        )
+                    )
+                }.build()
+            )
             .setSelection(start)
             .build()
             .apply {
@@ -67,21 +73,23 @@ class MaterialRenewListener(
             .show(fragmentManager, "MaterialRenewListener.DatePicker")
     }
 
-    override suspend fun openWebPage(url: URL) = suspendCoroutine<Unit> { cont ->
-        webPageContinuation = cont
+    override suspend fun openWebPage(url: Url) {
+        suspendCoroutine { cont ->
+            webPageContinuation = cont
 
-        webPageLauncher.launch(
-            CustomTabsIntent.Builder().build().intent.apply {
-                data = Uri.parse(url.toString())
-            }
-        )
+            webPageLauncher.launch(
+                CustomTabsIntent.Builder().build().intent.apply {
+                    data = Uri.parse(url.toString())
+                }
+            )
+        }
     }
 
     private var webPageContinuation: Continuation<Unit>? = null
 
-    private val webPageLauncher = caller.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+    private val webPageLauncher = caller.registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
         webPageContinuation?.resume(Unit)
     }
-
 }
-

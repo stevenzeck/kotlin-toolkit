@@ -14,7 +14,7 @@ import android.graphics.RectF
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
-object R2FXLUtils {
+internal object R2FXLUtils {
 
     /**
      * Round and set the values on the rectangle
@@ -43,7 +43,12 @@ object R2FXLUtils {
      * @param bottom bottom
      */
     fun setRect(rect: RectF, left: Float, top: Float, right: Float, bottom: Float) {
-        rect.set(left.roundToLong().toFloat(), top.roundToLong().toFloat(), right.roundToLong().toFloat(), bottom.roundToLong().toFloat())
+        rect.set(
+            left.roundToLong().toFloat(),
+            top.roundToLong().toFloat(),
+            right.roundToLong().toFloat(),
+            bottom.roundToLong().toFloat()
+        )
     }
 
     /**
@@ -71,5 +76,4 @@ object R2FXLUtils {
         array[2] = rect.right
         array[3] = rect.bottom
     }
-
 }

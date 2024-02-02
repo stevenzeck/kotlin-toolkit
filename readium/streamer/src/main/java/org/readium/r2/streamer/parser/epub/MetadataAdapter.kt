@@ -14,9 +14,8 @@ import org.readium.r2.shared.publication.presentation.Presentation
 
 internal class MetadataAdapter(
     private val epubVersion: Double,
-    private val fallbackTitle: String,
     private val uniqueIdentifierId: String?,
-    private val readingProgression: ReadingProgression,
+    private val readingProgression: ReadingProgression?,
     private val displayOptions: Map<String, String>
 ) {
     data class Result(
@@ -52,7 +51,7 @@ internal class MetadataAdapter(
             .adapt(IdentifierAdapter(uniqueIdentifierId)::adapt)
 
         val published = globalItemsHolder
-            .adapt {  it.takeFirstWithProperty(Vocabularies.DCTERMS + "date") }
+            .adapt { it.takeFirstWithProperty(Vocabularies.DCTERMS + "date") }
             ?.value
             ?.iso8601ToDate()
 
@@ -65,7 +64,7 @@ internal class MetadataAdapter(
             ?.value
 
         val (localizedTitle, localizedSortAs, localizedSubtitle) = globalItemsHolder
-            .adapt(TitleAdapter(fallbackTitle)::adapt)
+            .adapt(TitleAdapter()::adapt)
 
         val (belongsToCollections, belongsToSeries) = globalItemsHolder
             .adapt(CollectionAdapter()::adapt)
@@ -92,7 +91,7 @@ internal class MetadataAdapter(
             .adapt(globalItemsHolder.remainingItems)
 
         val otherMetadata: Map<String, Any> =
-                remainingMetadata + Pair("presentation", presentation.toJSON().toMap())
+            remainingMetadata + Pair("presentation", presentation.toJSON().toMap())
 
         val metadata = Metadata(
             identifier = identifier,
@@ -125,7 +124,7 @@ internal class MetadataAdapter(
 
         return Result(
             links = links,
-            metadata =  metadata,
+            metadata = metadata,
             durationById = durationById,
             coverId = coverId
         )
@@ -149,14 +148,16 @@ private class LinksAdapter {
     private fun mapLink(link: MetadataItem.Link): Link {
         val contains: MutableList<String> = mutableListOf()
         if (link.rels.contains(Vocabularies.LINK + "record")) {
-            if (link.properties.contains(Vocabularies.LINK + "onix"))
+            if (link.properties.contains(Vocabularies.LINK + "onix")) {
                 contains.add("onix")
-            if (link.properties.contains(Vocabularies.LINK + "xmp"))
+            }
+            if (link.properties.contains(Vocabularies.LINK + "xmp")) {
                 contains.add("xmp")
+            }
         }
         return Link(
             href = link.href,
-            type = link.mediaType,
+            mediaType = link.mediaType,
             rels = link.rels,
             properties = Properties(mapOf("contains" to contains))
         )
@@ -187,10 +188,10 @@ private class LanguageAdapter {
         .mapFirst { it.map(MetadataItem.Meta::value) }
 }
 
-private class TitleAdapter(private val fallbackTitle: String) {
+private class TitleAdapter() {
 
     data class Result(
-        val localizedTitle: LocalizedString,
+        val localizedTitle: LocalizedString?,
         val localizedSortAs: LocalizedString?,
         val localizedSubtitle: LocalizedString?
     )
@@ -205,14 +206,13 @@ private class TitleAdapter(private val fallbackTitle: String) {
         val mainTitleItem = mainTitleWithItem?.second
 
         val localizedTitle = mainTitle?.value
-            ?: LocalizedString(fallbackTitle)
         val localizedSortAs = mainTitle?.fileAs
             ?: items.firstWithProperty("calibre:title_sort")
                 ?.let { LocalizedString(it.value) }
 
         val subtitleWithItem = titles
             .filter { it.first.type == "subtitle" }
-            .sortedBy{ it.first.displaySeq }
+            .sortedBy { it.first.displaySeq }
             .firstOrNull()
         val localizedSubtitle = subtitleWithItem?.first?.value
         val subtitleItem = subtitleWithItem?.second
@@ -221,7 +221,11 @@ private class TitleAdapter(private val fallbackTitle: String) {
             .removeFirstOrNull { it == mainTitleItem }.second
             .removeFirstOrNull { it == subtitleItem }.second
 
-        return Result(localizedTitle, localizedSortAs, localizedSubtitle) to remainingItems
+        return Result(
+            localizedTitle = localizedTitle,
+            localizedSortAs = localizedSortAs,
+            localizedSubtitle = localizedSubtitle
+        ) to remainingItems
     }
 }
 
@@ -274,17 +278,18 @@ private class ContributorAdapter {
             .mapValues { it.value.map(Pair<String?, Contributor>::second) }
 
         return contributors to remainingItems
-
     }
 }
 
 private fun MetadataItem.Meta.toContributor(): Pair<String?, Contributor> {
-    require(property in listOf("creator", "contributor", "publisher").map { Vocabularies.DCTERMS + it } +
-        (Vocabularies.MEDIA + "narrator") + (Vocabularies.META + "belongs-to-collection"))
+    require(
+        property in listOf("creator", "contributor", "publisher").map { Vocabularies.DCTERMS + it } +
+            (Vocabularies.MEDIA + "narrator") + (Vocabularies.META + "belongs-to-collection")
+    )
     val knownRoles = setOf("aut", "trl", "edt", "pbl", "art", "ill", "clr", "nrt")
     val localizedSortAs = fileAs?.let { LocalizedString(it.second, it.first) }
-    val roles = role.takeUnless { it in knownRoles  }?.let { setOf(it) }.orEmpty()
-    val type = when(property) {
+    val roles = role.takeUnless { it in knownRoles }?.let { setOf(it) }.orEmpty()
+    val type = when (property) {
         Vocabularies.META + "belongs-to-collection" -> collectionType
         Vocabularies.DCTERMS + "creator" -> "aut"
         Vocabularies.DCTERMS + "publisher" -> "pbl"
@@ -292,8 +297,13 @@ private fun MetadataItem.Meta.toContributor(): Pair<String?, Contributor> {
         else -> role.takeIf { it in knownRoles } // Vocabularies.DCTERMS + "contributor"
     }
 
-    val contributor =  Contributor(localizedString, localizedSortAs = localizedSortAs,
-        roles = roles, identifier = identifier, position = groupPosition)
+    val contributor = Contributor(
+        localizedString,
+        localizedSortAs = localizedSortAs,
+        roles = roles,
+        identifier = identifier,
+        position = groupPosition
+    )
 
     return Pair(type, contributor)
 }
@@ -321,7 +331,7 @@ private class CollectionAdapter {
         val belongsToSeries = series.map(Pair<String?, Collection>::second)
             .ifEmpty { legacySeries(items).let { remainingItems = it.second; it.first } }
 
-        return  Result(belongsToCollections, belongsToSeries) to remainingItems
+        return Result(belongsToCollections, belongsToSeries) to remainingItems
     }
 
     private fun legacySeries(items: List<MetadataItem>): Pair<List<Collection>, List<MetadataItem>> {
@@ -354,15 +364,15 @@ private class OtherMetadataAdapter {
             }
 
     private fun MetadataItem.Meta.toMap(): Any =
-        if (children.isEmpty())
+        if (children.isEmpty()) {
             value
-        else {
+        } else {
             val mappedMetaChildren = children
                 .filterIsInstance(MetadataItem.Meta::class.java)
                 .associate { Pair(it.property, it.toMap()) }
             val mappedLinkChildren = children
                 .filterIsInstance(MetadataItem.Link::class.java)
-                .flatMap { link -> link.rels.map { rel -> Pair(rel, link.href) } }
+                .flatMap { link -> link.rels.map { rel -> Pair(rel, link.url()) } }
                 .toMap()
             mappedMetaChildren + mappedLinkChildren + Pair("@value", value)
         }
@@ -396,7 +406,7 @@ private val MetadataItem.Meta.alternateScript: Map<String, String>
 private val MetadataItem.Meta.fileAs
     get() = children
         .firstWithProperty(Vocabularies.META + "file-as")
-        ?.let { Pair(it.lang.takeUnless(String::isEmpty) , it.value) }
+        ?.let { Pair(it.lang.takeUnless(String::isEmpty), it.value) }
 
 private val MetadataItem.Meta.authority
     get() = children.firstWithProperty(Vocabularies.META + "authority")?.value
@@ -428,4 +438,3 @@ private val MetadataItem.identifier
 private val MetadataItem.role
     get() = children.firstWithProperty(Vocabularies.META + "role")
         ?.value
-

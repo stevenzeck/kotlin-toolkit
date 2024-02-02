@@ -9,18 +9,15 @@
 
 package org.readium.r2.shared
 
+import java.io.File
+import java.net.URL
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.readium.r2.shared.extensions.toListTest
 import org.readium.r2.shared.extensions.toMapTest
-import org.readium.r2.shared.fetcher.Fetcher
-import org.readium.r2.shared.fetcher.Resource
-import org.readium.r2.shared.publication.Link
-import org.readium.r2.shared.util.use
-import java.io.File
-import java.net.URL
+import org.readium.r2.shared.util.resource.Resource
 
 /**
  * Asserts that two [JSONObject] are equal.
@@ -48,17 +45,8 @@ class Fixtures(val path: String? = null) {
 
     fun fileAt(resourcePath: String): File =
         File(pathAt(resourcePath))
-
 }
 
 internal fun Resource.readBlocking(range: LongRange? = null) = runBlocking { read(range) }
 
-internal fun Fetcher.readBlocking(href: String) = runBlocking { get(Link(href = href)).use { it.readBlocking() } }
-
 internal fun Resource.lengthBlocking() = runBlocking { length() }
-
-internal fun Fetcher.lengthBlocking(href: String) = runBlocking { get(Link(href = href)).use { it.lengthBlocking() } }
-
-internal fun Resource.linkBlocking() = runBlocking { link() }
-
-internal fun Fetcher.linkBlocking(href: String) = runBlocking { get(Link(href = href)).use { it.linkBlocking() } }

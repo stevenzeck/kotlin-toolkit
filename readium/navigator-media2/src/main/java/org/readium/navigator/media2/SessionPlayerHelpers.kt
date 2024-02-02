@@ -4,28 +4,30 @@
  * available in the top-level LICENSE file of the project.
  */
 
+@file:Suppress("DEPRECATION")
+
 package org.readium.navigator.media2
 
 import androidx.media2.common.MediaItem
 import androidx.media2.common.MediaMetadata
 import androidx.media2.common.SessionPlayer
-import org.readium.r2.shared.util.Try
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
+import org.readium.r2.shared.util.Try
 
 internal enum class SessionPlayerState {
     Idle,
     Paused,
     Playing,
-    Error;
+    Failure;
 
     companion object {
         fun fromCode(sessionPlayerState: Int) = when (sessionPlayerState) {
             SessionPlayer.PLAYER_STATE_IDLE -> Idle
             SessionPlayer.PLAYER_STATE_PAUSED -> Paused
             SessionPlayer.PLAYER_STATE_PLAYING -> Playing
-            else -> Error // SessionPlayer.PLAYER_STATE_ERROR
+            else -> Failure // SessionPlayer.PLAYER_STATE_ERROR
         }
     }
 }
@@ -60,7 +62,7 @@ internal typealias SessionPlayerResult = Try<Unit, SessionPlayerException>
 
 internal class SessionPlayerException(val error: SessionPlayerError) : Exception()
 
-internal enum class SessionPlayerError{
+internal enum class SessionPlayerError {
     BAD_VALUE,
     INVALID_STATE,
     IO,
@@ -81,7 +83,7 @@ internal enum class SessionPlayerError{
 
         fun fromCode(resultCode: Int): SessionPlayerError {
             require(resultCode != 0)
-            return when(resultCode) {
+            return when (resultCode) {
                 -3 -> BAD_VALUE
                 -2 -> INVALID_STATE
                 -5 -> IO
@@ -106,7 +108,7 @@ internal data class ItemState(
     val index: Int,
     val position: Duration,
     val buffered: Duration,
-    val duration: Duration?,
+    val duration: Duration?
 )
 
 @OptIn(ExperimentalTime::class)
@@ -130,7 +132,7 @@ internal val SessionPlayer.currentItem: ItemState
     }
 
 internal val SessionPlayer.playbackSpeedNullable
-    get() =  playbackSpeed.takeUnless { it == 0f  }?.toDouble()
+    get() = playbackSpeed.takeUnless { it == 0f }?.toDouble()
 
 internal val SessionPlayer.currentIndexNullable
     get() = currentMediaItemIndex.takeUnless { it == SessionPlayer.INVALID_ITEM_INDEX }
@@ -149,10 +151,11 @@ internal val SessionPlayer.currentDuration: Duration?
 
 @ExperimentalTime
 private fun msToDuration(ms: Long): Duration? =
-    if (ms == SessionPlayer.UNKNOWN_TIME)
+    if (ms == SessionPlayer.UNKNOWN_TIME) {
         null
-    else
+    } else {
         ms.milliseconds
+    }
 
 @ExperimentalTime
 internal val MediaMetadata.duration: Duration?
@@ -170,4 +173,3 @@ internal val List<MediaMetadata>.durations: List<Duration>?
 @ExperimentalTime
 internal val List<MediaItem>.metadata: List<MediaMetadata>
     get() = map { it.metadata!! }
-

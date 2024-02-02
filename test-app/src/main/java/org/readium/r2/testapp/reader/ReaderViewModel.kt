@@ -9,7 +9,6 @@
 package org.readium.r2.testapp.reader
 
 import android.graphics.Color
-import android.os.Bundle
 import androidx.annotation.ColorInt
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -20,63 +19,83 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import org.readium.r2.navigator.Decoration
 import org.readium.r2.navigator.ExperimentalDecorator
+import org.readium.r2.navigator.epub.EpubNavigatorFragment
+import org.readium.r2.navigator.image.ImageNavigatorFragment
+import org.readium.r2.navigator.pdf.PdfNavigatorFragment
 import org.readium.r2.shared.ExperimentalReadiumApi
-import org.readium.r2.shared.Search
-import org.readium.r2.shared.UserException
 import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.publication.LocatorCollection
 import org.readium.r2.shared.publication.Publication
 import org.readium.r2.shared.publication.services.search.SearchIterator
 import org.readium.r2.shared.publication.services.search.SearchTry
 import org.readium.r2.shared.publication.services.search.search
+import org.readium.r2.shared.util.AbsoluteUrl
 import org.readium.r2.shared.util.Try
+import org.readium.r2.shared.util.Url
+import org.readium.r2.shared.util.data.ReadError
 import org.readium.r2.testapp.Application
-import org.readium.r2.testapp.bookshelf.BookRepository
-import org.readium.r2.testapp.domain.model.Highlight
-import org.readium.r2.testapp.reader.settings.UserSettingsViewModel
+import org.readium.r2.testapp.R
+import org.readium.r2.testapp.data.BookRepository
+import org.readium.r2.testapp.data.model.Highlight
+import org.readium.r2.testapp.domain.toUserError
+import org.readium.r2.testapp.reader.preferences.UserPreferencesViewModel
 import org.readium.r2.testapp.reader.tts.TtsViewModel
 import org.readium.r2.testapp.search.SearchPagingSource
 import org.readium.r2.testapp.utils.EventChannel
+import org.readium.r2.testapp.utils.UserError
 import org.readium.r2.testapp.utils.createViewModelFactory
+import timber.log.Timber
 
-@OptIn(Search::class, ExperimentalDecorator::class, ExperimentalCoroutinesApi::class)
+@OptIn(
+    ExperimentalDecorator::class,
+    ExperimentalCoroutinesApi::class,
+    ExperimentalReadiumApi::class
+)
 class ReaderViewModel(
-    application: Application,
-    val readerInitData: ReaderInitData,
-    private val bookRepository: BookRepository,
-) : ViewModel() {
+    private val bookId: Long,
+    private val readerRepository: ReaderRepository,
+    private val bookRepository: BookRepository
+) : ViewModel(),
+    EpubNavigatorFragment.Listener,
+    ImageNavigatorFragment.Listener,
+    PdfNavigatorFragment.Listener {
+
+    val readerInitData =
+        try {
+            checkNotNull(readerRepository[bookId])
+        } catch (e: Exception) {
+            // Fallbacks on a dummy Publication to avoid crashing the app until the Activity finishes.
+            DummyReaderInitData(bookId)
+        }
 
     val publication: Publication =
         readerInitData.publication
 
-    val bookId: Long =
-        readerInitData.bookId
-
-    val activityChannel: EventChannel<Event> =
+    val activityChannel: EventChannel<ActivityCommand> =
         EventChannel(Channel(Channel.BUFFERED), viewModelScope)
 
     val fragmentChannel: EventChannel<FeedbackEvent> =
         EventChannel(Channel(Channel.BUFFERED), viewModelScope)
 
+    val searchChannel: EventChannel<SearchCommand> =
+        EventChannel(Channel(Channel.BUFFERED), viewModelScope)
+
     val tts: TtsViewModel? = TtsViewModel(
-        context = application,
-        publication = readerInitData.publication,
-        scope = viewModelScope
+        viewModelScope = viewModelScope,
+        readerInitData = readerInitData
     )
 
-    val settings: UserSettingsViewModel = UserSettingsViewModel(
-        application = application,
-        bookId = readerInitData.bookId,
-        kind = readerInitData.navigatorKind,
-        scope = viewModelScope
+    val settings: UserPreferencesViewModel<*, *>? = UserPreferencesViewModel(
+        viewModelScope = viewModelScope,
+        readerInitData = readerInitData
     )
 
-    override fun onCleared() {
-        super.onCleared()
-        tts?.onCleared()
+    fun close() {
+        readerRepository.close(bookId)
     }
 
     fun saveProgression(locator: Locator) = viewModelScope.launch {
+        Timber.v("Saving locator for book $bookId: $locator.")
         bookRepository.saveProgression(locator, bookId)
     }
 
@@ -129,11 +148,11 @@ class ReaderViewModel(
             id = "$id-$idSuffix",
             locator = locator,
             style = style,
-            extras = Bundle().apply {
-                // We store the highlight's database ID in the extras bundle, for easy retrieval
-                // later. You can store arbitrary information in the bundle.
-                putLong("id", id)
-            }
+            extras = mapOf(
+                // We store the highlight's database ID in the extras map, for easy retrieval
+                // later. You can store arbitrary information in the map.
+                "id" to id
+            )
         )
 
         return listOfNotNull(
@@ -141,15 +160,21 @@ class ReaderViewModel(
             createDecoration(
                 idSuffix = "highlight",
                 style = when (style) {
-                    Highlight.Style.HIGHLIGHT -> Decoration.Style.Highlight(tint = tint, isActive = isActive)
-                    Highlight.Style.UNDERLINE -> Decoration.Style.Underline(tint = tint, isActive = isActive)
+                    Highlight.Style.HIGHLIGHT -> Decoration.Style.Highlight(
+                        tint = tint,
+                        isActive = isActive
+                    )
+                    Highlight.Style.UNDERLINE -> Decoration.Style.Underline(
+                        tint = tint,
+                        isActive = isActive
+                    )
                 }
             ),
             // Additional page margin icon decoration, if the highlight has an associated note.
             annotation.takeIf { it.isNotEmpty() }?.let {
                 createDecoration(
                     idSuffix = "annotation",
-                    style = DecorationStyleAnnotationMark(tint = tint),
+                    style = DecorationStyleAnnotationMark(tint = tint)
                 )
             }
         )
@@ -158,7 +183,12 @@ class ReaderViewModel(
     suspend fun highlightById(id: Long): Highlight? =
         bookRepository.highlightById(id)
 
-    fun addHighlight(locator: Locator, style: Highlight.Style, @ColorInt tint: Int, annotation: String = "") = viewModelScope.launch {
+    fun addHighlight(
+        locator: Locator,
+        style: Highlight.Style,
+        @ColorInt tint: Int,
+        annotation: String = ""
+    ) = viewModelScope.launch {
         bookRepository.addHighlight(bookId, style, tint, locator, annotation)
     }
 
@@ -181,10 +211,16 @@ class ReaderViewModel(
         lastSearchQuery = query
         _searchLocators.value = emptyList()
         searchIterator = publication.search(query)
-            .onFailure { activityChannel.send(Event.Failure(it)) }
-            .getOrNull()
+            ?: run {
+                activityChannel.send(
+                    ActivityCommand.ToastError(
+                        UserError(R.string.search_error_not_searchable, cause = null)
+                    )
+                )
+                null
+            }
         pagingSourceFactory.invalidate()
-        activityChannel.send(Event.StartNewSearch)
+        searchChannel.send(SearchCommand.StartNewSearch)
     }
 
     fun cancelSearch() = viewModelScope.launch {
@@ -223,6 +259,21 @@ class ReaderViewModel(
         SearchPagingSource(listener = PagingSourceListener())
     }
 
+    // Navigator.Listener
+
+    override fun onResourceLoadFailed(href: Url, error: ReadError) {
+        activityChannel.send(
+            ActivityCommand.ToastError(error.toUserError())
+        )
+    }
+
+    // HyperlinkNavigator.Listener
+    override fun onExternalLinkActivated(url: AbsoluteUrl) {
+        activityChannel.send(ActivityCommand.OpenExternalLink(url))
+    }
+
+    // Search
+
     inner class PagingSourceListener : SearchPagingSource.Listener {
         override suspend fun next(): SearchTry<LocatorCollection?> {
             val iterator = searchIterator ?: return Try.success(null)
@@ -238,11 +289,11 @@ class ReaderViewModel(
 
     // Events
 
-    sealed class Event {
-        object OpenOutlineRequested : Event()
-        object OpenDrmManagementRequested : Event()
-        object StartNewSearch : Event()
-        class Failure(val error: UserException) : Event()
+    sealed class ActivityCommand {
+        object OpenOutlineRequested : ActivityCommand()
+        object OpenDrmManagementRequested : ActivityCommand()
+        class OpenExternalLink(val url: AbsoluteUrl) : ActivityCommand()
+        class ToastError(val error: UserError) : ActivityCommand()
     }
 
     sealed class FeedbackEvent {
@@ -250,19 +301,18 @@ class ReaderViewModel(
         object BookmarkFailed : FeedbackEvent()
     }
 
+    sealed class SearchCommand {
+        object StartNewSearch : SearchCommand()
+    }
+
     companion object {
         fun createFactory(application: Application, arguments: ReaderActivityContract.Arguments) =
             createViewModelFactory {
-                val readerInitData =
-                    try {
-                        val readerRepository = application.readerRepository.getCompleted()
-                        checkNotNull(readerRepository[arguments.bookId])
-                    } catch (e: Exception) {
-                        // Fallbacks on a dummy Publication to avoid crashing the app until the Activity finishes.
-                        DummyReaderInitData(arguments.bookId)
-                    }
-
-                ReaderViewModel(application, readerInitData, application.bookRepository)
+                ReaderViewModel(
+                    arguments.bookId,
+                    application.readerRepository,
+                    application.bookRepository
+                )
             }
     }
 }

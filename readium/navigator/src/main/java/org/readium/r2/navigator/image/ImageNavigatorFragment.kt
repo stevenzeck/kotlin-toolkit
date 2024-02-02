@@ -13,40 +13,54 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentFactory
 import androidx.viewpager.widget.ViewPager
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.runBlocking
+import org.readium.r2.navigator.NavigatorFragment
+import org.readium.r2.navigator.OverflowableNavigator
+import org.readium.r2.navigator.RestorationNotSupportedException
+import org.readium.r2.navigator.SimpleOverflow
 import org.readium.r2.navigator.VisualNavigator
-import org.readium.r2.navigator.databinding.ActivityR2ViewpagerBinding
+import org.readium.r2.navigator.databinding.ReadiumNavigatorViewpagerBinding
+import org.readium.r2.navigator.dummyPublication
 import org.readium.r2.navigator.extensions.layoutDirectionIsRTL
+import org.readium.r2.navigator.extensions.normalizeLocator
+import org.readium.r2.navigator.input.CompositeInputListener
+import org.readium.r2.navigator.input.InputListener
+import org.readium.r2.navigator.input.KeyInterceptorView
+import org.readium.r2.navigator.input.TapEvent
 import org.readium.r2.navigator.pager.R2CbzPageFragment
 import org.readium.r2.navigator.pager.R2PagerAdapter
 import org.readium.r2.navigator.pager.R2ViewPager
+import org.readium.r2.navigator.preferences.Axis
+import org.readium.r2.navigator.preferences.ReadingProgression
 import org.readium.r2.navigator.util.createFragmentFactory
-import org.readium.r2.shared.publication.*
-import org.readium.r2.shared.publication.services.isRestricted
+import org.readium.r2.shared.DelicateReadiumApi
+import org.readium.r2.shared.ExperimentalReadiumApi
+import org.readium.r2.shared.publication.Link
+import org.readium.r2.shared.publication.Locator
+import org.readium.r2.shared.publication.Publication
+import org.readium.r2.shared.publication.ReadingProgression as PublicationReadingProgression
+import org.readium.r2.shared.publication.indexOfFirstWithHref
 import org.readium.r2.shared.publication.services.positions
+import org.readium.r2.shared.util.Url
+import org.readium.r2.shared.util.mediatype.MediaType
 
 /**
  * Navigator for bitmap-based publications, such as CBZ.
  */
-class ImageNavigatorFragment private constructor(
-    override val publication: Publication,
+@OptIn(ExperimentalReadiumApi::class, DelicateReadiumApi::class)
+public class ImageNavigatorFragment private constructor(
+    publication: Publication,
     private val initialLocator: Locator? = null,
     internal val listener: Listener? = null
-) : Fragment(), CoroutineScope by MainScope(), VisualNavigator {
+) : NavigatorFragment(publication), OverflowableNavigator {
 
-    interface Listener : VisualNavigator.Listener
-
-    init {
-        require(!publication.isRestricted) { "The provided publication is restricted. Check that any DRM was properly unlocked using a Content Protection." }
-    }
+    public interface Listener : VisualNavigator.Listener
 
     internal lateinit var positions: List<Locator>
     internal lateinit var resourcePager: R2ViewPager
@@ -57,31 +71,43 @@ class ImageNavigatorFragment private constructor(
     private lateinit var currentActivity: FragmentActivity
 
     override val currentLocator: StateFlow<Locator> get() = _currentLocator
-    private val _currentLocator = MutableStateFlow(initialLocator
-        ?: requireNotNull(publication.locatorFromLink(publication.readingOrder.first()))
+    private val _currentLocator = MutableStateFlow(
+        initialLocator?.let { publication.normalizeLocator(it) }
+            ?: requireNotNull(publication.locatorFromLink(publication.readingOrder.first()))
     )
 
     internal var currentPagerPosition: Int = 0
     internal var resources: List<String> = emptyList()
 
-    private var _binding: ActivityR2ViewpagerBinding? = null
+    private var _binding: ReadiumNavigatorViewpagerBinding? = null
     private val binding get() = _binding!!
 
     override fun onCreate(savedInstanceState: Bundle?) {
         childFragmentManager.fragmentFactory = createFragmentFactory {
-            R2CbzPageFragment(publication) { x, y -> this.listener?.onTap(PointF(x, y)) }
+            R2CbzPageFragment(publication) { x, y ->
+                inputListener.onTap(
+                    TapEvent(PointF(x, y))
+                )
+            }
         }
         super.onCreate(savedInstanceState)
     }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
         currentActivity = requireActivity()
-        _binding = ActivityR2ViewpagerBinding.inflate(inflater, container, false)
+        _binding = ReadiumNavigatorViewpagerBinding.inflate(inflater, container, false)
         val view = binding.root
 
-        preferences = requireContext().getSharedPreferences("org.readium.r2.settings", Context.MODE_PRIVATE)
+        preferences = requireContext().getSharedPreferences(
+            "org.readium.r2.settings",
+            Context.MODE_PRIVATE
+        )
         resourcePager = binding.resourcePager
-        resourcePager.type = Publication.TYPE.CBZ
+        resourcePager.publicationType = R2ViewPager.PublicationType.CBZ
 
         positions = runBlocking { publication.positions() }
 
@@ -113,7 +139,7 @@ class ImageNavigatorFragment private constructor(
             go(initialLocator)
         }
 
-        return view
+        return KeyInterceptorView(view, inputListener)
     }
 
     override fun onStart() {
@@ -124,37 +150,53 @@ class ImageNavigatorFragment private constructor(
         notifyCurrentLocation()
     }
 
+    override fun onResume() {
+        super.onResume()
+
+        if (publication == dummyPublication) {
+            throw RestorationNotSupportedException
+        }
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
     }
 
-    @Deprecated("Use goForward instead", replaceWith = ReplaceWith("goForward()"), level = DeprecationLevel.ERROR)
+    @Deprecated(
+        "Use goForward instead",
+        replaceWith = ReplaceWith("goForward()"),
+        level = DeprecationLevel.ERROR
+    )
     @Suppress("UNUSED_PARAMETER")
-    fun nextResource(v: View?) {
+    public fun nextResource(v: View?) {
         goForward()
     }
 
-    @Deprecated("Use goBackward instead", replaceWith = ReplaceWith("goBackward()"), level = DeprecationLevel.ERROR)
+    @Deprecated(
+        "Use goBackward instead",
+        replaceWith = ReplaceWith("goBackward()"),
+        level = DeprecationLevel.ERROR
+    )
     @Suppress("UNUSED_PARAMETER")
-    fun previousResource(v: View?) {
+    public fun previousResource(v: View?) {
         goBackward()
     }
 
     private fun notifyCurrentLocation() {
-        val locator = positions[resourcePager.currentItem]
-        if (locator == _currentLocator.value) {
-            return
-        }
+        val locator = positions.getOrNull(resourcePager.currentItem)
+            ?.takeUnless { it == _currentLocator.value }
+            ?: return
+
         _currentLocator.value = locator
     }
 
-    override val readingProgression: ReadingProgression
-        get() = publication.metadata.effectiveReadingProgression
-
     override fun go(locator: Locator, animated: Boolean, completion: () -> Unit): Boolean {
+        @Suppress("NAME_SHADOWING")
+        val locator = publication.normalizeLocator(locator)
+
         val resourceIndex = publication.readingOrder.indexOfFirstWithHref(locator.href)
-                ?: return false
+            ?: return false
 
         listener?.onJumpToLocator(locator)
         currentPagerPosition = resourceIndex
@@ -196,7 +238,44 @@ class ImageNavigatorFragment private constructor(
         return current != resourcePager.currentItem
     }
 
-    companion object {
+    // VisualNavigator
+
+    override val publicationView: View
+        get() = requireView()
+
+    @Suppress("DEPRECATION")
+    @Deprecated(
+        "Use `presentation.value.readingProgression` instead",
+        replaceWith = ReplaceWith("presentation.value.readingProgression"),
+        level = DeprecationLevel.ERROR
+    )
+    override val readingProgression: PublicationReadingProgression =
+        publication.metadata.effectiveReadingProgression
+
+    @ExperimentalReadiumApi
+    override val overflow: StateFlow<OverflowableNavigator.Overflow> =
+        MutableStateFlow(
+            SimpleOverflow(
+                readingProgression = when (publication.metadata.readingProgression) {
+                    PublicationReadingProgression.RTL -> ReadingProgression.RTL
+                    else -> ReadingProgression.LTR
+                },
+                scroll = false,
+                axis = Axis.HORIZONTAL
+            )
+        ).asStateFlow()
+
+    private val inputListener = CompositeInputListener()
+
+    override fun addInputListener(listener: InputListener) {
+        inputListener.add(listener)
+    }
+
+    override fun removeInputListener(listener: InputListener) {
+        inputListener.remove(listener)
+    }
+
+    public companion object {
 
         /**
          * Factory for [ImageNavigatorFragment].
@@ -206,7 +285,25 @@ class ImageNavigatorFragment private constructor(
          *        publication. Can be used to restore the last reading location.
          * @param listener Optional listener to implement to observe events, such as user taps.
          */
-        fun createFactory(publication: Publication, initialLocator: Locator? = null, listener: Listener? = null): FragmentFactory =
+        public fun createFactory(
+            publication: Publication,
+            initialLocator: Locator? = null,
+            listener: Listener? = null
+        ): FragmentFactory =
             createFragmentFactory { ImageNavigatorFragment(publication, initialLocator, listener) }
+
+        /**
+         * Creates a factory for a dummy [ImageNavigatorFragment].
+         *
+         * Used when Android restore the [ImageNavigatorFragment] after the process was killed. You
+         * need to make sure the fragment is removed from the screen before `onResume` is called.
+         */
+        public fun createDummyFactory(): FragmentFactory = createFragmentFactory {
+            ImageNavigatorFragment(
+                publication = dummyPublication,
+                initialLocator = Locator(href = Url("#")!!, mediaType = MediaType.JPEG),
+                listener = null
+            )
+        }
     }
 }

@@ -4,15 +4,50 @@
 //  available in the top-level LICENSE file of the project.
 //
 
-import { isScrollModeEnabled, pageWidth } from "./utils";
+import { isScrollModeEnabled } from "./utils";
 import { getCssSelector } from "css-selector-generator";
+
+// See. https://github.com/JayPanoz/architecture/tree/touch-handling/misc/touch-handling
+export function nearestInteractiveElement(element) {
+  if (element == null) {
+    return null;
+  }
+  var interactiveTags = [
+    "a",
+    "audio",
+    "button",
+    "canvas",
+    "details",
+    "input",
+    "label",
+    "option",
+    "select",
+    "submit",
+    "textarea",
+    "video",
+  ];
+  if (interactiveTags.indexOf(element.nodeName.toLowerCase()) != -1) {
+    return element.outerHTML;
+  }
+
+  // Checks whether the element is editable by the user.
+  if (
+    element.hasAttribute("contenteditable") &&
+    element.getAttribute("contenteditable").toLowerCase() != "false"
+  ) {
+    return element.outerHTML;
+  }
+
+  // Checks parents recursively because the touch might be for example on an <em> inside a <a>.
+  if (element.parentElement) {
+    return nearestInteractiveElement(element.parentElement);
+  }
+
+  return null;
+}
 
 export function findFirstVisibleLocator() {
   const element = findElement(document.body);
-  if (!element) {
-    return undefined;
-  }
-
   return {
     href: "#",
     type: "application/xhtml+xml",
@@ -26,51 +61,30 @@ export function findFirstVisibleLocator() {
 }
 
 function findElement(rootElement) {
-  var foundElement = undefined;
-  for (var i = rootElement.children.length - 1; i >= 0; i--) {
+  for (var i = 0; i < rootElement.children.length; i++) {
     const child = rootElement.children[i];
-    const position = elementRelativePosition(child, undefined);
-    if (position == 0) {
-      if (!shouldIgnoreElement(child)) {
-        foundElement = child;
-      }
-    } else if (position < 0) {
-      if (!foundElement) {
-        foundElement = child;
-      }
-      break;
+    if (!shouldIgnoreElement(child) && isElementVisible(child)) {
+      return findElement(child);
     }
-  }
-
-  if (foundElement) {
-    return findElement(foundElement);
   }
   return rootElement;
 }
 
-// See computeVisibility_() in r2-navigator-js
-function elementRelativePosition(element, domRect /* nullable */) {
+function isElementVisible(element) {
   if (readium.isFixedLayout) return true;
 
   if (element === document.body || element === document.documentElement) {
-    return -1;
+    return true;
   }
   if (!document || !document.documentElement || !document.body) {
-    return 1;
+    return false;
   }
 
-  const rect = domRect || element.getBoundingClientRect();
-
+  const rect = element.getBoundingClientRect();
   if (isScrollModeEnabled()) {
-    return rect.top >= 0 && rect.top <= document.documentElement.clientHeight;
+    return rect.bottom > 0 && rect.top < window.innerHeight;
   } else {
-    if (rect.left >= pageWidth) {
-      return 1;
-    } else if (rect.left >= 0) {
-      return 0;
-    } else {
-      return -1;
-    }
+    return rect.right > 0 && rect.left < window.innerWidth;
   }
 }
 
@@ -78,7 +92,7 @@ function shouldIgnoreElement(element) {
   const elStyle = getComputedStyle(element);
   if (elStyle) {
     const display = elStyle.getPropertyValue("display");
-    if (display === "none") {
+    if (display != "block") {
       return true;
     }
     // Cannot be relied upon, because web browser engine reports invisible when out of view in

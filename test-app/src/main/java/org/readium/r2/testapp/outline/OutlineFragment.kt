@@ -60,17 +60,31 @@ class OutlineFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val outlines: List<Outline> = when {
-            publication.conformsTo(Publication.Profile.EPUB) -> listOf(Outline.Contents, Outline.Bookmarks, Outline.Highlights, Outline.PageList, Outline.Landmarks)
+            publication.conformsTo(Publication.Profile.EPUB) -> listOf(
+                Outline.Contents,
+                Outline.Bookmarks,
+                Outline.Highlights,
+                Outline.PageList,
+                Outline.Landmarks
+            )
             else -> listOf(Outline.Contents, Outline.Bookmarks)
         }
 
         binding.outlinePager.adapter = OutlineFragmentStateAdapter(this, publication, outlines)
-        TabLayoutMediator(binding.outlineTabLayout, binding.outlinePager) { tab, idx -> tab.setText(outlines[idx].label) }.attach()
+        TabLayoutMediator(binding.outlineTabLayout, binding.outlinePager) { tab, idx ->
+            tab.setText(
+                outlines[idx].label
+            )
+        }.attach()
     }
 }
 
-private class OutlineFragmentStateAdapter(fragment: Fragment, val publication: Publication, val outlines: List<Outline>)
-    : FragmentStateAdapter(fragment) {
+private class OutlineFragmentStateAdapter(
+    fragment: Fragment,
+    val publication: Publication,
+    val outlines: List<Outline>
+) :
+    FragmentStateAdapter(fragment) {
 
     override fun getItemCount(): Int {
         return outlines.size
@@ -87,12 +101,14 @@ private class OutlineFragmentStateAdapter(fragment: Fragment, val publication: P
     }
 
     private fun createContentsFragment() =
-        NavigationFragment.newInstance(when {
-            publication.tableOfContents.isNotEmpty() -> publication.tableOfContents
-            publication.readingOrder.isNotEmpty() -> publication.readingOrder
-            publication.images.isNotEmpty() -> publication.images
-            else -> mutableListOf()
-        })
+        NavigationFragment.newInstance(
+            when {
+                publication.tableOfContents.isNotEmpty() -> publication.tableOfContents
+                publication.readingOrder.isNotEmpty() -> publication.readingOrder
+                publication.images.isNotEmpty() -> publication.images
+                else -> mutableListOf()
+            }
+        )
 
     private fun createPageListFragment() =
         NavigationFragment.newInstance(publication.pageList)

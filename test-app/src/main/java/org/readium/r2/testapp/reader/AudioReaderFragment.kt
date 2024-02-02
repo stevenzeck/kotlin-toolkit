@@ -17,28 +17,31 @@ import android.view.ViewGroup
 import android.widget.SeekBar
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.collectLatest
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.DurationUnit
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import org.readium.navigator.media2.ExperimentalMedia2
-import org.readium.navigator.media2.MediaNavigator
+import org.readium.adapter.exoplayer.audio.ExoPlayerPreferences
+import org.readium.adapter.exoplayer.audio.ExoPlayerSettings
+import org.readium.navigator.media.common.MediaNavigator
+import org.readium.navigator.media.common.TimeBasedMediaNavigator
+import org.readium.r2.navigator.preferences.Configurable
+import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.publication.services.cover
 import org.readium.r2.testapp.R
 import org.readium.r2.testapp.databinding.FragmentAudiobookBinding
+import org.readium.r2.testapp.reader.preferences.UserPreferencesViewModel
 import org.readium.r2.testapp.utils.viewLifecycle
 import timber.log.Timber
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
-import kotlin.time.DurationUnit
-import kotlin.time.ExperimentalTime
 
-@OptIn(ExperimentalMedia2::class, ExperimentalTime::class, ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalReadiumApi::class)
 class AudioReaderFragment : BaseReaderFragment(), SeekBar.OnSeekBarChangeListener {
 
-    override lateinit var navigator: MediaNavigator
-    
-    private lateinit var displayedPlayback: MediaNavigator.Playback
+    override lateinit var navigator: TimeBasedMediaNavigator<*, *, *>
+
     private var binding: FragmentAudiobookBinding by viewLifecycle()
     private var seekingItem: Int? = null
 
@@ -52,13 +55,25 @@ class AudioReaderFragment : BaseReaderFragment(), SeekBar.OnSeekBarChangeListene
         }
     }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
         binding = FragmentAudiobookBinding.inflate(inflater, container, false)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        @Suppress("Unchecked_cast")
+        (navigator as? Configurable<ExoPlayerSettings, ExoPlayerPreferences>)
+            ?.let { navigator ->
+                @Suppress("Unchecked_cast")
+                (model.settings as UserPreferencesViewModel<ExoPlayerSettings, ExoPlayerPreferences>)
+                    .bind(navigator, viewLifecycleOwner)
+            }
 
         binding.publicationTitle.text = model.publication.metadata.title
 
@@ -68,19 +83,16 @@ class AudioReaderFragment : BaseReaderFragment(), SeekBar.OnSeekBarChangeListene
             }
         }
 
-        displayedPlayback = navigator.playback.value
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            navigator.playback.collectLatest { playback ->
-               onPlaybackChanged(playback)
-            }
-        }
+        navigator.playback
+            .onEach { onPlaybackChanged(it) }
+            .launchIn(viewLifecycleOwner.lifecycleScope)
     }
 
-    private fun onPlaybackChanged(playback: MediaNavigator.Playback) {
+    private fun onPlaybackChanged(
+        playback: TimeBasedMediaNavigator.Playback
+    ) {
         Timber.v("onPlaybackChanged $playback")
-        this.displayedPlayback = playback
-        if (playback.state == MediaNavigator.Playback.State.Error) {
+        if (playback.state is MediaNavigator.State.Failure) {
             onPlayerError()
             return
         }
@@ -90,22 +102,27 @@ class AudioReaderFragment : BaseReaderFragment(), SeekBar.OnSeekBarChangeListene
         binding.timelineDuration.isEnabled = true
         binding.timelinePosition.isEnabled = true
         binding.playPause.setImageResource(
-            if (playback.state == MediaNavigator.Playback.State.Playing)
+            if (playback.playWhenReady) {
                 R.drawable.ic_baseline_pause_24
-            else
+            } else {
                 R.drawable.ic_baseline_play_arrow_24
+            }
         )
+
         if (seekingItem == null) {
-            updateTimeline(playback.resource, playback.buffer.position)
+            updateTimeline(playback)
         }
     }
 
-    private fun updateTimeline(resource: MediaNavigator.Playback.Resource, buffered: Duration) {
-        binding.timelineBar.max = resource.duration?.inWholeSeconds?.toInt() ?: 0
-        binding.timelineDuration.text = resource.duration?.formatElapsedTime()
-        binding.timelineBar.progress = resource.position.inWholeSeconds.toInt()
-        binding.timelinePosition.text = resource.position.formatElapsedTime()
-        binding.timelineBar.secondaryProgress = buffered.inWholeSeconds.toInt()
+    private fun updateTimeline(
+        playback: TimeBasedMediaNavigator.Playback
+    ) {
+        val currentItem = navigator.readingOrder.items[playback.index]
+        binding.timelineBar.max = currentItem.duration?.inWholeSeconds?.toInt() ?: 0
+        binding.timelineDuration.text = currentItem.duration?.formatElapsedTime()
+        binding.timelineBar.progress = playback.offset.inWholeSeconds.toInt()
+        binding.timelinePosition.text = playback.offset.formatElapsedTime()
+        binding.timelineBar.secondaryProgress = playback.buffered?.inWholeSeconds?.toInt() ?: 0
     }
 
     private fun Duration.formatElapsedTime(): String =
@@ -135,7 +152,7 @@ class AudioReaderFragment : BaseReaderFragment(), SeekBar.OnSeekBarChangeListene
 
     @Suppress("UNUSED_PARAMETER")
     private fun forbidUserSeeking(view: View, event: MotionEvent): Boolean =
-        this.displayedPlayback.state == MediaNavigator.Playback.State.Finished
+        navigator.playback.value.state is MediaNavigator.State.Ended
 
     override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
         if (fromUser) {
@@ -145,44 +162,35 @@ class AudioReaderFragment : BaseReaderFragment(), SeekBar.OnSeekBarChangeListene
 
     override fun onStartTrackingTouch(seekBar: SeekBar) {
         Timber.d("onStartTrackingTouch")
-        seekingItem = this.displayedPlayback.resource.index
+        seekingItem = navigator.playback.value.index
     }
 
     override fun onStopTrackingTouch(seekBar: SeekBar) {
         Timber.d("onStopTrackingTouch")
-        seekingItem?.let { index ->
-            lifecycleScope.launch {
-                navigator.seek(index, seekBar.progress.seconds)
-                // Some timeline updates might have been missed during seeking.
-                val playbackNow = navigator.playback.value
-                updateTimeline(playbackNow.resource, playbackNow.buffer.position)
-                seekingItem = null
-            }
-        }
+        navigator.skipTo(checkNotNull(seekingItem), seekBar.progress.seconds)
+        seekingItem = null
     }
 
     private fun onPlayPause(@Suppress("UNUSED_PARAMETER") view: View) {
-        return when (displayedPlayback.state) {
-            MediaNavigator.Playback.State.Playing -> {
+        return when (navigator.playback.value.state) {
+            is MediaNavigator.State.Ready, is MediaNavigator.State.Buffering -> {
                 model.viewModelScope.launch {
-                    navigator.pause()
+                    if (navigator.playback.value.playWhenReady) {
+                        navigator.pause()
+                    } else {
+                        navigator.play()
+                    }
                 }
                 Unit
             }
-            MediaNavigator.Playback.State.Paused -> {
+            is MediaNavigator.State.Ended -> {
                 model.viewModelScope.launch {
+                    navigator.skipTo(0, Duration.ZERO)
                     navigator.play()
                 }
                 Unit
             }
-            MediaNavigator.Playback.State.Finished -> {
-                model.viewModelScope.launch {
-                    navigator.seek(0, Duration.ZERO)
-                    navigator.play()
-                }
-                Unit
-            }
-            MediaNavigator.Playback.State.Error -> {
+            is MediaNavigator.State.Failure -> {
                 // Do nothing.
             }
         }
@@ -190,17 +198,17 @@ class AudioReaderFragment : BaseReaderFragment(), SeekBar.OnSeekBarChangeListene
 
     private fun onSkipForward(@Suppress("UNUSED_PARAMETER") view: View) {
         model.viewModelScope.launch {
-            navigator.goForward()
+            navigator.skipForward()
         }
     }
 
     private fun onSkipBackward(@Suppress("UNUSED_PARAMETER") view: View) {
         model.viewModelScope.launch {
-            navigator.goBackward()
+            navigator.skipBackward()
         }
     }
 
-    override fun go(locator: Locator, animated: Boolean){
+    override fun go(locator: Locator, animated: Boolean) {
         model.viewModelScope.launch {
             navigator.go(locator)
             navigator.play()

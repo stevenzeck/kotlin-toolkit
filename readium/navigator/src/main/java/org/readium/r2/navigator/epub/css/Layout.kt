@@ -6,7 +6,10 @@
 
 package org.readium.r2.navigator.epub.css
 
-import org.readium.r2.shared.publication.ReadingProgression
+import org.readium.r2.navigator.epub.EpubSettings
+import org.readium.r2.navigator.epub.extensions.isCjk
+import org.readium.r2.navigator.preferences.ReadingProgression
+import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.util.Language
 
 /**
@@ -14,10 +17,11 @@ import org.readium.r2.shared.util.Language
  *
  * See https://github.com/readium/readium-css/tree/master/css/dist
  */
+@ExperimentalReadiumApi
 internal data class Layout(
     val language: Language? = null,
     val stylesheets: Stylesheets = Stylesheets.Default,
-    val readingProgression: ReadingProgression = ReadingProgression.LTR,
+    val readingProgression: ReadingProgression = ReadingProgression.LTR
 ) {
     /**
      * Readium CSS stylesheet variants.
@@ -25,8 +29,10 @@ internal data class Layout(
     enum class Stylesheets(val folder: String?, val htmlDir: HtmlDir) {
         /** Left to right */
         Default(null, HtmlDir.Ltr),
+
         /** Right to left */
         Rtl("rtl", HtmlDir.Rtl),
+
         /**
          * Asian language, laid out vertically.
          *
@@ -34,11 +40,30 @@ internal data class Layout(
          * https://github.com/readium/readium-css/tree/master/css/dist#vertical
          */
         CjkVertical("cjk-vertical", HtmlDir.Unspecified),
+
         /** Asian language, laid out horizontally */
         CjkHorizontal("cjk-horizontal", HtmlDir.Ltr);
     }
 
     enum class HtmlDir {
         Unspecified, Ltr, Rtl;
+    }
+
+    companion object {
+
+        internal fun from(settingsValues: EpubSettings): Layout {
+            val stylesheets = when {
+                settingsValues.verticalText -> Stylesheets.CjkVertical
+                settingsValues.language?.isCjk == true -> Stylesheets.CjkHorizontal
+                settingsValues.readingProgression == ReadingProgression.RTL -> Stylesheets.Rtl
+                else -> Stylesheets.Default
+            }
+
+            return Layout(
+                language = settingsValues.language,
+                readingProgression = settingsValues.readingProgression,
+                stylesheets = stylesheets
+            )
+        }
     }
 }

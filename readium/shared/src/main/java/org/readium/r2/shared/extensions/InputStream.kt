@@ -13,18 +13,23 @@
 
 package org.readium.r2.shared.extensions
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
+import java.util.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Copies this stream to the given output stream, returning the number of bytes copied
  *
  * **Note** It is the caller's responsibility to close both of these resources.
  */
-internal fun InputStream.copyTo(out: OutputStream, limit: Long, bufferSize: Int = DEFAULT_BUFFER_SIZE): Int {
+internal fun InputStream.copyTo(
+    out: OutputStream,
+    limit: Long,
+    bufferSize: Int = DEFAULT_BUFFER_SIZE
+): Int {
     var bytesCopied: Int = 0
     var toRead: Int = limit.toInt()
     val buffer = ByteArray(bufferSize)
@@ -50,7 +55,6 @@ internal fun InputStream.read(limit: Long): ByteArray {
     return buffer.toByteArray()
 }
 
-
 // WARNING: this requires a stream not used yet
 internal suspend fun InputStream.readRange(range: LongRange): ByteArray {
     @Suppress("NAME_SHADOWING")
@@ -58,8 +62,9 @@ internal suspend fun InputStream.readRange(range: LongRange): ByteArray {
         .coerceFirstNonNegative()
         .requireLengthFitInt()
 
-    if (range.isEmpty())
+    if (range.isEmpty()) {
         return ByteArray(0)
+    }
 
     return withContext(Dispatchers.IO) {
         val skipped = skip(range.first)
@@ -76,3 +81,17 @@ internal suspend fun InputStream.readFully(): ByteArray =
     withContext(Dispatchers.IO) {
         readBytes()
     }
+
+internal fun InputStream.readSafe(b: ByteArray): Int =
+    readSafe(b, 0, b.size)
+
+internal fun InputStream.readSafe(b: ByteArray, off: Int, len: Int): Int {
+    Objects.checkFromIndexSize(off, len, b.size)
+    var n = 0
+    while (n < len) {
+        val count = read(b, off + n, len - n)
+        if (count < 0) break
+        n += count
+    }
+    return n
+}

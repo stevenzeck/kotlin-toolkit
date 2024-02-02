@@ -4,6 +4,8 @@
  * available in the top-level LICENSE file of the project.
  */
 
+@file:Suppress("DEPRECATION")
+
 package org.readium.r2.navigator.media.extensions
 
 import android.os.Bundle
@@ -17,10 +19,15 @@ internal var MediaSessionCompat.publicationId: PublicationId?
     get() = controller.publicationId
     set(value) {
         val extras = Bundle(controller.extras ?: Bundle())
-        setExtras(extras.apply {
-            putString(MediaService.EXTRA_PUBLICATION_ID, value)
-        })
-        sendSessionEvent(MediaService.EVENT_PUBLICATION_CHANGED, Bundle().apply {
-            putString(MediaService.EXTRA_PUBLICATION_ID, value)
-        })
+        setExtras(
+            extras.apply {
+                putString(MediaService.EXTRA_PUBLICATION_ID, value)
+            }
+        )
+        sendSessionEvent(
+            MediaService.EVENT_PUBLICATION_CHANGED,
+            Bundle().apply {
+                putString(MediaService.EXTRA_PUBLICATION_ID, value)
+            }
+        )
     }

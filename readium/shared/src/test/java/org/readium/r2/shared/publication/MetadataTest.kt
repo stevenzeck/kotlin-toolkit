@@ -32,14 +32,18 @@ class MetadataTest {
                 identifier = "1234",
                 type = "epub",
                 conformsTo = setOf(Publication.Profile.EPUB, Publication.Profile.PDF),
-                localizedTitle = LocalizedString.fromStrings(mapOf(
-                    "en" to "Title",
-                    "fr" to "Titre"
-                )),
-                localizedSubtitle = LocalizedString.fromStrings(mapOf(
-                    "en" to "Subtitle",
-                    "fr" to "Sous-titre"
-                )),
+                localizedTitle = LocalizedString.fromStrings(
+                    mapOf(
+                        "en" to "Title",
+                        "fr" to "Titre"
+                    )
+                ),
+                localizedSubtitle = LocalizedString.fromStrings(
+                    mapOf(
+                        "en" to "Subtitle",
+                        "fr" to "Sous-titre"
+                    )
+                ),
                 accessibility = Accessibility(
                     conformsTo = setOf(Accessibility.Profile.EPUB_A11Y_10_WCAG_20_A),
                     accessModes = setOf(Accessibility.AccessMode.TEXTUAL),
@@ -84,7 +88,9 @@ class MetadataTest {
                     "other-metadata2" to listOf(42)
                 )
             ),
-            Metadata.fromJSON(JSONObject("""{
+            Metadata.fromJSON(
+                JSONObject(
+                    """{
                 "identifier": "1234",
                 "@type": "epub",
                 "conformsTo": [
@@ -130,7 +136,9 @@ class MetadataTest {
                 },
                 "other-metadata1": "value",
                 "other-metadata2": [42]
-            }"""))
+            }"""
+                )
+            )
         )
     }
 
@@ -142,12 +150,16 @@ class MetadataTest {
         assertEquals(
             Metadata(
                 conformsTo = setOf(Publication.Profile.DIVINA),
-                localizedTitle = LocalizedString("Title"),
+                localizedTitle = LocalizedString("Title")
             ),
-            Metadata.fromJSON(JSONObject("""{
+            Metadata.fromJSON(
+                JSONObject(
+                    """{
                 "title": "Title",
                 "conformsTo": "https://readium.org/webpub-manifest/profiles/divina"
-            }"""))
+            }"""
+                )
+            )
         )
     }
 
@@ -157,15 +169,15 @@ class MetadataTest {
                 localizedTitle = LocalizedString("Title"),
                 languages = listOf("fr")
             ),
-            Metadata.fromJSON(JSONObject("""{
+            Metadata.fromJSON(
+                JSONObject(
+                    """{
                 "title": "Title",
                 "language": "fr"
-            }"""))
+            }"""
+                )
+            )
         )
-    }
-
-    @Test fun `parse JSON requires {title}`() {
-        assertNull(Metadata.fromJSON(JSONObject("{'duration': 4.24}")))
     }
 
     @Test fun `parse JSON {duration} requires positive`() {
@@ -184,17 +196,20 @@ class MetadataTest {
 
     @Test fun `get minimal JSON`() {
         assertJSONEquals(
-            JSONObject("""{
+            JSONObject(
+                """{
                 "title": {"und": "Title"},
                 "readingProgression": "auto"
-            }"""),
+            }"""
+            ),
             Metadata(localizedTitle = LocalizedString("Title")).toJSON()
         )
     }
 
     @Test fun `get full JSON`() {
         assertJSONEquals(
-            JSONObject("""{
+            JSONObject(
+                """{
                 "identifier": "1234",
                 "@type": "epub",
                 "conformsTo": [
@@ -242,19 +257,24 @@ class MetadataTest {
                 },
                 "other-metadata1": "value",
                 "other-metadata2": [42]
-            }"""),
+            }"""
+            ),
             Metadata(
                 identifier = "1234",
                 type = "epub",
                 conformsTo = setOf(Publication.Profile.EPUB, Publication.Profile.PDF),
-                localizedTitle = LocalizedString.fromStrings(mapOf(
-                    "en" to "Title",
-                    "fr" to "Titre"
-                )),
-                localizedSubtitle = LocalizedString.fromStrings(mapOf(
-                    "en" to "Subtitle",
-                    "fr" to "Sous-titre"
-                )),
+                localizedTitle = LocalizedString.fromStrings(
+                    mapOf(
+                        "en" to "Title",
+                        "fr" to "Titre"
+                    )
+                ),
+                localizedSubtitle = LocalizedString.fromStrings(
+                    mapOf(
+                        "en" to "Subtitle",
+                        "fr" to "Sous-titre"
+                    )
+                ),
                 modified = "2001-01-01T12:36:27.000Z".iso8601ToDate(),
                 published = "2001-01-02T12:36:27.000Z".iso8601ToDate(),
                 accessibility = Accessibility(
@@ -265,10 +285,12 @@ class MetadataTest {
                     hazards = setOf(Accessibility.Hazard.FLASHING)
                 ),
                 languages = listOf("en", "fr"),
-                localizedSortAs = LocalizedString.fromStrings(mapOf(
-                    "en" to "sort key",
-                    "fr" to "clé de tri"
-                )),
+                localizedSortAs = LocalizedString.fromStrings(
+                    mapOf(
+                        "en" to "sort key",
+                        "fr" to "clé de tri"
+                    )
+                ),
                 subjects = listOf(Subject(name = "Science Fiction"), Subject(name = "Fantasy")),
                 authors = listOf(Contributor(name = "Author")),
                 translators = listOf(Contributor(name = "Translator")),
@@ -299,15 +321,19 @@ class MetadataTest {
     }
 
     @Test fun `get primary language with no language`() {
-        assertNull(createMetadata(languages = listOf(), readingProgression = ReadingProgression.AUTO).language)
-        assertNull(createMetadata(languages = listOf(), readingProgression = ReadingProgression.LTR).language)
-        assertNull(createMetadata(languages = listOf(), readingProgression = ReadingProgression.RTL).language)
+        assertNull(createMetadata(languages = listOf(), readingProgression = null).language)
+        assertNull(
+            createMetadata(languages = listOf(), readingProgression = ReadingProgression.LTR).language
+        )
+        assertNull(
+            createMetadata(languages = listOf(), readingProgression = ReadingProgression.RTL).language
+        )
     }
 
     @Test fun `get primary language with a single language`() {
         assertEquals(
             Language("en"),
-            createMetadata(languages = listOf("en"), readingProgression = ReadingProgression.AUTO).language
+            createMetadata(languages = listOf("en"), readingProgression = null).language
         )
         assertEquals(
             Language("en"),
@@ -319,6 +345,10 @@ class MetadataTest {
         )
     }
 
-    private fun createMetadata(languages: List<String>, readingProgression: ReadingProgression): Metadata =
-        Metadata(localizedTitle = LocalizedString("Title"), languages = languages, readingProgression = readingProgression)
+    private fun createMetadata(languages: List<String>, readingProgression: ReadingProgression?): Metadata =
+        Metadata(
+            localizedTitle = LocalizedString("Title"),
+            languages = languages,
+            readingProgression = readingProgression
+        )
 }
