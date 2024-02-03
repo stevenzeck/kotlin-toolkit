@@ -51,7 +51,7 @@ android {
         }
     }
     packaging {
-        resources.excludes.add("META-INF/*")
+//        resources.excludes.add("META-INF/*")
     }
 
     sourceSets {
@@ -90,7 +90,7 @@ dependencies {
     implementation(libs.androidx.cardview)
 
     implementation(libs.bundles.compose)
-//    debugImplementation(libs.androidx.compose.ui)
+    debugImplementation(libs.androidx.compose.ui)
 
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.core)
@@ -106,6 +106,8 @@ dependencies {
     implementation(libs.google.material)
     implementation(libs.timber)
     implementation(libs.picasso)
+    implementation(libs.glide.compose)
+    implementation(libs.coil.compose)
     implementation(libs.joda.time)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.jsoup)

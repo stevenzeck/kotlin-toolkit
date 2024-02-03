@@ -1,4 +1,4 @@
-package org.readium.r2.testapp.about
+package org.readium.r2.testapp.compose.about
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -10,17 +10,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavOptions
+import androidx.navigation.compose.composable
 import org.readium.r2.testapp.R
-import org.readium.r2.testapp.compose.TopBarState
+import org.readium.r2.testapp.compose.Screen
 
 @Composable
-fun AboutScreen(updateTopBarState: (TopBarState) -> Unit) {
-
-    updateTopBarState(
-        TopBarState(
-            title = stringResource(id = R.string.title_about),
-        )
-    )
+internal fun AboutScreen() {
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(15.dp)) {
         SectionHeading(stringResource(id = R.string.app_version_header))
@@ -71,5 +69,14 @@ fun SectionHeading(headingText: String) {
             fontWeight = FontWeight.Bold,
             text = headingText
         )
+    }
+}
+
+fun NavController.navigateToAbout(navOptions: NavOptions) =
+    navigate(Screen.BottomNav.About.route, navOptions)
+
+fun NavGraphBuilder.aboutScreen() {
+    composable(Screen.BottomNav.About.route) {
+        AboutScreen()
     }
 }

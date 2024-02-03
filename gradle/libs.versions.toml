@@ -17,6 +17,7 @@ androidx-compose-animation = "1.5.4"
 androidx-compose-foundation = "1.5.4"
 androidx-compose-material = "1.5.4"
 androidx-compose-material3 = "1.1.2"
+androidx-compose-navigation = "2.7.6"
 androidx-compose-runtime = "1.5.4"
 androidx-compose-ui = "1.5.4"
 androidx-constraintlayout = "2.1.4"
@@ -40,7 +41,11 @@ androidx-webkit = "1.9.0"
 
 assertj = "3.25.1"
 
+coil-compose = "1.4.0"
+
 dokka = "1.9.10"
+
+glide = "1.0.0-beta01"
 
 google-exoplayer = "2.19.1"
 google-material = "1.11.0"
@@ -83,6 +88,7 @@ androidx-compose-foundation = { group = "androidx.compose.foundation", name = "f
 androidx-compose-material = { group = "androidx.compose.material", name = "material", version.ref = "androidx-compose-material" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "androidx-compose-material3" }
 androidx-compose-material-icons = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "androidx-compose-material" }
+androidx-compose-navigation = { group = "androidx.navigation", name = "navigation-compose", version.ref = "androidx-compose-navigation" }
 androidx-compose-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "androidx-compose-ui" }
 androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling", version.ref = "androidx-compose-ui" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "androidx-constraintlayout" }
@@ -118,7 +124,11 @@ androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "a
 
 assertj = { group = "org.assertj", name = "assertj-core", version.ref = "assertj" }
 
+coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil-compose" }
+
 dokka-gradle = { group = "org.jetbrains.dokka", name = "dokka-gradle-plugin", version.ref = "dokka" }
+
+glide-compose = { group = "com.github.bumptech.glide", name ="compose", version.ref = "glide" }
 
 google-exoplayer-core = { group = "com.google.android.exoplayer", name = "exoplayer-core", version.ref = "google-exoplayer" }
 google-exoplayer-extension-media2 = { group = "com.google.android.exoplayer", name = "extension-media2", version.ref = "google-exoplayer" }
@@ -161,7 +171,7 @@ ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 
 [bundles]
-compose = ["androidx-compose-activity", "androidx-compose-animation", "androidx-compose-foundation", "androidx-compose-material", "androidx-compose-material3", "androidx-compose-material-icons", "androidx-compose-ui", "androidx-compose-ui-tooling"]
+compose = ["androidx-compose-activity", "androidx-compose-animation", "androidx-compose-foundation", "androidx-compose-material", "androidx-compose-material3", "androidx-compose-material-icons", "androidx-compose-navigation", "androidx-compose-ui", "androidx-compose-ui-tooling"]
 coroutines = ["kotlinx-coroutines-core", "kotlinx-coroutines-android"]
 exoplayer = ["google-exoplayer-core", "google-exoplayer-ui", "google-exoplayer-mediasession", "google-exoplayer-workmanager", "google-exoplayer-extension-media2"]
 lifecycle = ["androidx-lifecycle-common", "androidx-lifecycle-extensions", "androidx-lifecycle-livedata", "androidx-lifecycle-runtime", "androidx-lifecycle-viewmodel", "androidx-lifecycle-vmsavedstate", "androidx-lifecycle-viewmodel-compose"]

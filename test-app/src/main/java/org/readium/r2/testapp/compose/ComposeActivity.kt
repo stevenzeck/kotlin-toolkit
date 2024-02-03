@@ -8,32 +8,38 @@ package org.readium.r2.testapp.compose
 
 import android.os.Bundle
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.core.view.WindowCompat
-import androidx.lifecycle.ViewModelProvider
-import org.readium.r2.testapp.bookshelf.BookshelfViewModel
+import com.google.android.material.snackbar.Snackbar
+import org.readium.r2.testapp.MainViewModel
+import org.readium.r2.testapp.R
 
-@ExperimentalFoundationApi
-@ExperimentalMaterial3Api
 class ComposeActivity : AppCompatActivity() {
 
-    private lateinit var viewModel: BookshelfViewModel
+    private val viewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        WindowCompat.setDecorFitsSystemWindows(window, true)
 
-        viewModel =
-            ViewModelProvider(this).get(BookshelfViewModel::class.java)
-
-        intent.data?.let {
-            viewModel.importPublicationFromUri(it)
-        }
+        viewModel.channel.receive(this) { handleEvent(it) }
 
         setContent {
             ReadiumTestApp()
+        }
+    }
+
+    private fun handleEvent(event: MainViewModel.Event) {
+        when (event) {
+            is MainViewModel.Event.ImportPublicationSuccess ->
+                Snackbar.make(
+                    findViewById(android.R.id.content),
+                    getString(R.string.import_publication_success),
+                    Snackbar.LENGTH_LONG
+                ).show()
+
+            is MainViewModel.Event.ImportPublicationError -> {
+                event.error.toUserError().show(this)
+            }
         }
     }
 }

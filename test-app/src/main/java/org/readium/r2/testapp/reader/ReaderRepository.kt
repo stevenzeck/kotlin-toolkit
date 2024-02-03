@@ -256,7 +256,6 @@ class ReaderRepository(
                     // Do nothing
                 }
             }
-            else -> {}
         }
     }
 }

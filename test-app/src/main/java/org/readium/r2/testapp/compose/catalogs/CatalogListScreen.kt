@@ -1,4 +1,4 @@
-package org.readium.r2.testapp.compose
+package org.readium.r2.testapp.compose.catalogs
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
@@ -9,28 +9,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import org.readium.r2.testapp.R
-import org.readium.r2.testapp.bookshelf.Loading
-import org.readium.r2.testapp.catalogs.CatalogListUiState
-import org.readium.r2.testapp.catalogs.CatalogListViewModel
+import androidx.navigation.NavController
+import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavOptions
+import androidx.navigation.compose.composable
+import org.readium.r2.testapp.compose.Screen
+import org.readium.r2.testapp.compose.bookshelf.Loading
 
 @Composable
-fun CatalogListScreen(
-    updateTopBarState: (TopBarState) -> Unit,
+internal fun CatalogListScreen(
     viewModel: CatalogListViewModel = viewModel(),
     onCatalogSelected: (Long) -> Unit
 ) {
     val listState = rememberLazyListState()
     val uiState by viewModel.uiState.collectAsState()
-
-    updateTopBarState(
-        TopBarState(
-            title = stringResource(id = R.string.title_catalogs),
-        )
-    )
 
     when (uiState) {
         is CatalogListUiState.HasCatalogs -> {
@@ -47,6 +41,17 @@ fun CatalogListScreen(
                 }
             }
         }
+
         else -> Loading()
+    }
+}
+
+fun NavGraphBuilder.catalogListScreen(
+    onCatalogSelected: (catalogId: Long) -> Unit
+) {
+    composable(Screen.BottomNav.Catalogs.route) {
+        CatalogListScreen(
+            onCatalogSelected = onCatalogSelected
+        )
     }
 }

@@ -20,6 +20,7 @@ fun TestAppTheme(
                 else -> dynamicLightColorScheme(LocalContext.current)
             }
         }
+
         else -> MaterialTheme.colorScheme
     }
 

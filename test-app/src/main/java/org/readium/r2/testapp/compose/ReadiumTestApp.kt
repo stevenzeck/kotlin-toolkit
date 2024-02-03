@@ -1,77 +1,90 @@
 package org.readium.r2.testapp.compose
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FabPosition
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import org.readium.r2.testapp.R
+import androidx.navigation.compose.NavHost
+import org.readium.r2.testapp.compose.about.aboutScreen
+import org.readium.r2.testapp.compose.bookshelf.bookshelfScreen
+import org.readium.r2.testapp.compose.catalogs.catalogListScreen
+import org.readium.r2.testapp.compose.catalogs.catalogScreen
+import org.readium.r2.testapp.compose.catalogs.navigateToCatalog
 
-@ExperimentalMaterial3Api
-@ExperimentalFoundationApi
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReadiumTestApp() {
 
-        TestAppTheme {
+    TestAppTheme {
 
-            val appState = rememberTestAppState()
+        val appState = rememberTestAppState()
 
-            TestAppScaffold(
-                topBar = {
-                    SmallTopAppBar(
-                        title = {
-                            appState.topBarState.title?.let { Text(text = it) }
-                        },
-                        navigationIcon = {
-                            if (appState.showBackButton) {
-                                IconButton(onClick = appState::upPress) {
-                                    Icon(
-                                        imageVector = Icons.Filled.ArrowBack,
-                                        contentDescription = stringResource(id = R.string.back),
-                                    )
-                                }
-                            } else appState.topBarState.navigationAction?.invoke()
-                        },
-                        actions = {
-                            appState.topBarState.actions?.invoke(this)
-                        }
-                    )
-                },
-                floatingActionButtonPosition = FabPosition.End,
-                floatingActionButton = {
-                    if (appState.showFab) {
-                        FloatingActionButton(
-                            onClick = {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
 
-                            },
-                        ) {
-                            Icon(
-                                Icons.Filled.Add,
-                                //TODO make this dynamic based on screen
-                                contentDescription = stringResource(id = R.string.add_book)
-                            )
-                        }
+                    },
+                    navigationIcon = {
+
+                    },
+                    actions = {
+
                     }
-                },
-                bottomBar = {
-                    TestAppBottomBar(
-                        appState,
-                        remember { BottomNavTabs.values() }
+                )
+            },
+            floatingActionButtonPosition = FabPosition.End,
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = {
+
+                    },
+                ) {
+                    Icon(
+                        Icons.Filled.Add,
+                        contentDescription = "TODO"
                     )
                 }
+
+            },
+            bottomBar = {
+                TestAppBottomBar(
+                    appState.navController
+                )
+            }
+        ) {
+            NavHost(
+                navController = appState.navController,
+                startDestination = Screen.BottomNav.Bookshelf.route,
+                modifier = Modifier.padding(it)
             ) {
-                Box(modifier = Modifier.padding(it)) {
-                    NavGraph(
-                        appState = appState
-                    )
-                }
+                bookshelfScreen(
+                    onOpenBook = { bookId ->
+
+                    }
+                )
+
+                catalogListScreen(
+                    onCatalogSelected = { catalogId ->
+                        appState.navController.navigateToCatalog(catalogId)
+                    }
+                )
+
+                catalogScreen(
+                    onPublicationSelected = {
+
+                    }
+                )
+
+                aboutScreen()
             }
         }
-
+    }
 }
