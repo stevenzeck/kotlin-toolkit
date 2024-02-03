@@ -41,20 +41,6 @@ interface CatalogDao {
     fun getCatalogModels(): LiveData<List<Catalog>>
 
     /**
-     * Retrieve list of all Catalog models
-     * @return List of Catalog models as LiveData
-     */
-    @Query("SELECT * FROM " + Catalog.TABLE_NAME)
-    suspend fun getCatalogs(): List<Catalog>?
-
-    /**
-     * Retrieve a specific catalog
-     * @return Catalog
-     */
-    @Query("SELECT * FROM ${Catalog.TABLE_NAME} WHERE ${Catalog.ID} = :catalogId")
-    suspend fun getCatalog(catalogId: Long): Catalog?
-
-    /**
      * Deletes an Catalog model
      * @param id The id of the Catalog model to delete
      */
