@@ -105,7 +105,6 @@ dependencies {
     implementation(libs.google.material)
     implementation(libs.timber)
     implementation(libs.picasso)
-    implementation(libs.glide.compose)
     implementation(libs.coil.compose)
     implementation(libs.joda.time)
     implementation(libs.kotlinx.coroutines.android)

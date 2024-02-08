@@ -41,7 +41,7 @@ androidx-webkit = "1.10.0"
 
 assertj = "3.25.2"
 
-coil-compose = "1.4.0"
+coil-compose = "2.5.0"
 
 dokka = "1.9.10"
 

@@ -1,7 +1,6 @@
 package org.readium.r2.testapp.compose
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
@@ -16,11 +15,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.rememberImagePainter
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import java.io.File
 import org.readium.r2.testapp.R
 
@@ -46,11 +48,20 @@ fun BookCover(
             modifier = Modifier
                 .fillMaxSize()
         ) {
-            Image(
-                painter = rememberImagePainter(coverImage),
-                contentDescription = stringResource(id = R.string.cover_image),
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+//            Image(
+//                painter = rememberAsyncImagePainter(coverImage),
+//                contentDescription = stringResource(id = R.string.cover_image),
+//                modifier = Modifier.fillMaxSize(),
+//                contentScale = ContentScale.Crop
+//            )
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(coverImage)
+                    .build(),
+                placeholder = painterResource(R.drawable.cover),
+                contentDescription = stringResource(R.string.cover_image),
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
             )
             Box(
                 modifier = Modifier
@@ -75,11 +86,10 @@ fun BookCover(
 @Preview
 @Composable
 fun BookCoverPreview() {
-    val emptyNavigation: () -> Unit = {}
     BookCover(
         "Moby Dick",
         File("https://test.opds.io/assets/moby/small.jpg"),
-        emptyNavigation,
-        emptyNavigation
+        onItemSelected = {},
+        onItemLongSelected = {}
     )
 }
