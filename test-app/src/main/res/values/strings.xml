@@ -5,6 +5,8 @@
 -->
 
 <resources>
+    <string name="app_title">Readium</string>
+
     <string name="epubactivity_drm_info">DRM Info</string>
     <string name="epubactivity_set_bookmark">Add a bookmark</string>
     <string name="epubactivity_settings">User Settings</string>

@@ -39,6 +39,7 @@
 <!--            </intent-filter>-->
 <!--        </activity>-->
         <activity android:name=".compose.ComposeActivity"
+            android:theme="@style/ComposeTheme"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

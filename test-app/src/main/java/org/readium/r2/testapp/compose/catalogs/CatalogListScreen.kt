@@ -7,16 +7,15 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
-import androidx.navigation.NavOptions
 import androidx.navigation.compose.composable
 import org.readium.r2.testapp.compose.Screen
 import org.readium.r2.testapp.compose.bookshelf.Loading
+import org.readium.r2.testapp.data.model.Catalog
 
 @Composable
 internal fun CatalogListScreen(
@@ -24,13 +23,14 @@ internal fun CatalogListScreen(
     onCatalogSelected: (Long) -> Unit
 ) {
     val listState = rememberLazyListState()
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.catalogListUiState.collectAsStateWithLifecycle()
 
     when (uiState) {
-        is CatalogListUiState.HasCatalogs -> {
+        CatalogListUiState.Loading -> Loading()
+        is CatalogListUiState.Success -> if ((uiState as CatalogListUiState.Success).catalogs.isNotEmpty()) {
             LazyColumn(state = listState, contentPadding = PaddingValues(10.dp)) {
                 items(
-                    items = (uiState as CatalogListUiState.HasCatalogs).catalogs,
+                    items = (uiState as CatalogListUiState.Success).catalogs,
                     key = { catalog ->
                         catalog.id!!
                     }
@@ -42,8 +42,21 @@ internal fun CatalogListScreen(
             }
         }
 
-        else -> Loading()
+        is CatalogListUiState.Failed -> Unit
     }
+}
+
+sealed interface CatalogListUiState {
+
+    data object Loading : CatalogListUiState
+
+    data class Failed(
+        val errorMessages: List<String>
+    ) : CatalogListUiState
+
+    data class Success(
+        val catalogs: List<Catalog>,
+    ) : CatalogListUiState
 }
 
 fun NavGraphBuilder.catalogListScreen(

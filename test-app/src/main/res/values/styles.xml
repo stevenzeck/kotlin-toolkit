@@ -11,4 +11,8 @@
 
     </style>
 
+    <style name="ComposeTheme" parent="Theme.Material3.DayNight.NoActionBar">
+
+    </style>
+
 </resources>
