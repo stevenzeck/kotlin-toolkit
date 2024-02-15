@@ -1,4 +1,4 @@
-package org.readium.r2.testapp.compose.catalogs
+package org.readium.r2.testapp.compose.catalogs.cataloglist
 
 import android.app.Application
 import android.content.Context
@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.readium.r2.testapp.compose.catalogs.cataloglist.CatalogListUiState
 import org.readium.r2.testapp.data.CatalogRepository
 import org.readium.r2.testapp.data.db.AppDatabase
 import org.readium.r2.testapp.data.model.Catalog

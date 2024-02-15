@@ -20,9 +20,9 @@ import androidx.navigation.compose.NavHost
 import org.readium.r2.testapp.R
 import org.readium.r2.testapp.compose.about.aboutScreen
 import org.readium.r2.testapp.compose.bookshelf.bookshelfScreen
-import org.readium.r2.testapp.compose.catalogs.catalogListScreen
-import org.readium.r2.testapp.compose.catalogs.catalogScreen
-import org.readium.r2.testapp.compose.catalogs.navigateToCatalog
+import org.readium.r2.testapp.compose.catalogs.cataloglist.catalogListScreen
+import org.readium.r2.testapp.compose.catalogs.catalogdetail.catalogScreen
+import org.readium.r2.testapp.compose.catalogs.catalogdetail.navigateToCatalog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,6 +90,9 @@ fun ReadiumTestApp() {
                 catalogScreen(
                     onPublicationSelected = {
 
+                    },
+                    onCatalogSelected = { catalogId ->
+                        appState.navController.navigateToCatalog(catalogId)
                     }
                 )
 

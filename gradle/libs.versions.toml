@@ -86,6 +86,7 @@ androidx-compose-activity = { group = "androidx.activity", name = "activity-comp
 androidx-compose-animation = { group = "androidx.compose.animation", name = "animation", version.ref = "androidx-compose-animation" }
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "androidx-compose-foundation" }
 androidx-compose-lifecycle = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidx-compose-lifecycle" }
+androidx-compose-lifecycle-viewmodel = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "androidx-compose-lifecycle" }
 androidx-compose-material = { group = "androidx.compose.material", name = "material", version.ref = "androidx-compose-material" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "androidx-compose-material3" }
 androidx-compose-material-icons = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "androidx-compose-material" }
@@ -171,7 +172,7 @@ ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
 
 [bundles]
 
-compose = ["androidx-compose-activity", "androidx-compose-animation", "androidx-compose-foundation", "androidx-compose-lifecycle", "androidx-compose-material", "androidx-compose-material3", "androidx-compose-material-icons", "androidx-compose-navigation", "androidx-compose-runtime", "androidx-compose-ui", "androidx-compose-ui-tooling"]
+compose = ["androidx-compose-activity", "androidx-compose-animation", "androidx-compose-foundation", "androidx-compose-lifecycle", "androidx-compose-lifecycle-viewmodel", "androidx-compose-material", "androidx-compose-material3", "androidx-compose-material-icons", "androidx-compose-navigation", "androidx-compose-runtime", "androidx-compose-ui", "androidx-compose-ui-tooling"]
 exoplayer = ["google-exoplayer-core", "google-exoplayer-ui", "google-exoplayer-mediasession", "google-exoplayer-workmanager", "google-exoplayer-extension-media2"]
 lifecycle = ["androidx-lifecycle-common", "androidx-lifecycle-extensions", "androidx-lifecycle-livedata", "androidx-lifecycle-runtime", "androidx-lifecycle-viewmodel", "androidx-lifecycle-vmsavedstate", "androidx-lifecycle-viewmodel-compose"]
 media2 = ["androidx-media2-session", "androidx-media2-player", "google-exoplayer-core", "google-exoplayer-extension-media2"]

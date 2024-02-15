@@ -46,8 +46,8 @@ fun TestAppBottomBar(navController: NavHostController) {
 }
 
 sealed class Screen(val route: String, @StringRes val title: Int? = null) {
-    object Feed : Screen("feed")
-    object Detail : Screen("detail")
+    object CatalogDetail : Screen("catalog")
+    object PublicationDetail : Screen("publication")
 
     sealed class BottomNav(route: String, @StringRes title: Int, val icon: ImageVector) :
         Screen(route, title) {

@@ -41,6 +41,13 @@ interface CatalogDao {
     fun getCatalogModels(): Flow<List<Catalog>>
 
     /**
+     * Retrieve a single Catalog model from an Id
+     * @return Catalog model as Flow
+     */
+    @Query("SELECT * FROM " + Catalog.TABLE_NAME + " WHERE " + Catalog.ID + " = :id")
+    fun getCatalogModel(id: Long): Flow<Catalog>
+
+    /**
      * Deletes an Catalog model
      * @param id The id of the Catalog model to delete
      */

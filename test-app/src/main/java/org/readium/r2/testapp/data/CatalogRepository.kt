@@ -18,5 +18,7 @@ class CatalogRepository(private val catalogDao: CatalogDao) {
 
     fun getCatalogsFromDatabase(): Flow<List<Catalog>> = catalogDao.getCatalogModels()
 
+    fun getCatalogFromDatabase(catalogId: Long): Flow<Catalog> = catalogDao.getCatalogModel(catalogId)
+
     suspend fun deleteCatalog(id: Long) = catalogDao.deleteCatalog(id)
 }

@@ -1,4 +1,4 @@
-package org.readium.r2.testapp.compose.catalogs
+package org.readium.r2.testapp.compose.catalogs.cataloglist
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,11 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavGraphBuilder
-import androidx.navigation.compose.composable
-import org.readium.r2.testapp.compose.Screen
 import org.readium.r2.testapp.compose.bookshelf.Loading
-import org.readium.r2.testapp.data.model.Catalog
 
 @Composable
 internal fun CatalogListScreen(
@@ -43,28 +39,5 @@ internal fun CatalogListScreen(
         }
 
         is CatalogListUiState.Failed -> Unit
-    }
-}
-
-sealed interface CatalogListUiState {
-
-    data object Loading : CatalogListUiState
-
-    data class Failed(
-        val errorMessages: List<String>
-    ) : CatalogListUiState
-
-    data class Success(
-        val catalogs: List<Catalog>,
-    ) : CatalogListUiState
-}
-
-fun NavGraphBuilder.catalogListScreen(
-    onCatalogSelected: (catalogId: Long) -> Unit
-) {
-    composable(Screen.BottomNav.Catalogs.route) {
-        CatalogListScreen(
-            onCatalogSelected = onCatalogSelected
-        )
     }
 }
