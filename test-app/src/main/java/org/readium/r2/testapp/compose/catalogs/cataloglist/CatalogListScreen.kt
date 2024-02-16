@@ -16,7 +16,7 @@ import org.readium.r2.testapp.compose.bookshelf.Loading
 @Composable
 internal fun CatalogListScreen(
     viewModel: CatalogListViewModel = viewModel(),
-    onCatalogSelected: (Long) -> Unit
+    onCatalogSelected: (String, String, Int) -> Unit
 ) {
     val listState = rememberLazyListState()
     val uiState by viewModel.catalogListUiState.collectAsStateWithLifecycle()
@@ -31,7 +31,13 @@ internal fun CatalogListScreen(
                         catalog.id!!
                     }
                 ) { catalog ->
-                    Button(onClick = { onCatalogSelected(catalog.id!!) }) {
+                    Button(onClick = {
+                        onCatalogSelected(
+                            catalog.href,
+                            catalog.title,
+                            catalog.type
+                        )
+                    }) {
                         Text(catalog.title)
                     }
                 }

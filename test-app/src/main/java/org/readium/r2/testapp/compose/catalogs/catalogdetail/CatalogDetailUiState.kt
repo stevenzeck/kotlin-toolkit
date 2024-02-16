@@ -11,6 +11,6 @@ sealed interface CatalogUiState {
     ) : CatalogUiState
 
     data class Success(
-        val parseData: ParseData?,
+        val parseData: ParseData,
     ) : CatalogUiState
 }

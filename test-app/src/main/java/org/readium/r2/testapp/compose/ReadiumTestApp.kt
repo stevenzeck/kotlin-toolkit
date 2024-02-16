@@ -82,8 +82,8 @@ fun ReadiumTestApp() {
                 )
 
                 catalogListScreen(
-                    onCatalogSelected = { catalogId ->
-                        appState.navController.navigateToCatalog(catalogId)
+                    onCatalogSelected = { href, title, type ->
+                        appState.navController.navigateToCatalog(href, title, type)
                     }
                 )
 
@@ -91,8 +91,8 @@ fun ReadiumTestApp() {
                     onPublicationSelected = {
 
                     },
-                    onCatalogSelected = { catalogId ->
-                        appState.navController.navigateToCatalog(catalogId)
+                    onCatalogSelected = { href, title, type ->
+                        appState.navController.navigateToCatalog(href, title, type)
                     }
                 )
 
