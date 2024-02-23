@@ -20,9 +20,9 @@ import androidx.navigation.compose.NavHost
 import org.readium.r2.testapp.R
 import org.readium.r2.testapp.compose.about.aboutScreen
 import org.readium.r2.testapp.compose.bookshelf.bookshelfScreen
-import org.readium.r2.testapp.compose.catalogs.cataloglist.catalogListScreen
 import org.readium.r2.testapp.compose.catalogs.catalogdetail.catalogScreen
 import org.readium.r2.testapp.compose.catalogs.catalogdetail.navigateToCatalog
+import org.readium.r2.testapp.compose.catalogs.cataloglist.catalogListScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,7 +36,7 @@ fun ReadiumTestApp() {
             topBar = {
                 TopAppBar(
                     title = {
-                        Text(stringResource(id = R.string.app_title))
+                        Text(text = stringResource(id = R.string.app_title))
                     },
                     navigationIcon = {
 
@@ -54,7 +54,7 @@ fun ReadiumTestApp() {
                     },
                 ) {
                     Icon(
-                        Icons.Filled.Add,
+                        imageVector = Icons.Filled.Add,
                         contentDescription = "TODO"
                     )
                 }
@@ -62,14 +62,16 @@ fun ReadiumTestApp() {
             },
             bottomBar = {
                 TestAppBottomBar(
-                    appState.navController
+                    navController = appState.navController
                 )
             }
         ) {
             NavHost(
                 navController = appState.navController,
                 startDestination = Screen.BottomNav.Bookshelf.route,
-                modifier = Modifier.padding(it).fillMaxSize(),
+                modifier = Modifier
+                    .padding(it)
+                    .fillMaxSize(),
                 enterTransition = { EnterTransition.None },
                 exitTransition = { ExitTransition.None },
                 popEnterTransition = { EnterTransition.None },

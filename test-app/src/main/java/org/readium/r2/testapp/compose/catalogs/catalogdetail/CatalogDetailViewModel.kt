@@ -27,24 +27,26 @@ class CatalogDetailViewModel(application: Application, savedStateHandle: SavedSt
 
     val catalogUiState: StateFlow<CatalogUiState> = flow {
         val result = viewModelScope.async { parseCatalog(href, type) }
-        emit(result.await().fold(onSuccess = { parsedData -> CatalogUiState.Success(parsedData) },
-            onFailure = { exception -> CatalogUiState.Failed(exception) }))
-    }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = CatalogUiState.Loading,
+        emit(
+            result.await().fold(onSuccess = { parsedData -> CatalogUiState.Success(parsedData) },
+                onFailure = { exception -> CatalogUiState.Failed(exception) })
         )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = CatalogUiState.Loading,
+    )
 
     suspend fun parseCatalog(href: String, type: Int): Try<ParseData, Exception> {
         val url = URLDecoder.decode(href, "UTF-8")
         return url.let { url ->
             AbsoluteUrl(url) ?: return@parseCatalog Try.failure(Exception("Invalid href"))
         }.let { HttpRequest(it) }.let { request ->
-                when (type) {
-                    1 -> OPDS1Parser.parseRequest(request, app.readium.httpClient)
-                    2 -> OPDS2Parser.parseRequest(request, app.readium.httpClient)
-                    else -> return@parseCatalog Try.failure(Exception("Unsupported catalog type"))
-                }
+            when (type) {
+                1 -> OPDS1Parser.parseRequest(request, app.readium.httpClient)
+                2 -> OPDS2Parser.parseRequest(request, app.readium.httpClient)
+                else -> return@parseCatalog Try.failure(Exception("Unsupported catalog type"))
             }
+        }
     }
 }

@@ -7,7 +7,7 @@ import org.readium.r2.testapp.compose.Screen
 fun NavGraphBuilder.catalogListScreen(
     onCatalogSelected: (href: String, title: String, type: Int) -> Unit
 ) {
-    composable(Screen.BottomNav.Catalogs.route) {
+    composable(route = Screen.BottomNav.Catalogs.route) {
         CatalogListScreen(
             onCatalogSelected = onCatalogSelected
         )

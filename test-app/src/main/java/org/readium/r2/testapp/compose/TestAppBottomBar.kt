@@ -28,8 +28,8 @@ fun TestAppBottomBar(navController: NavHostController) {
             listOf(Screen.BottomNav.Bookshelf, Screen.BottomNav.Catalogs, Screen.BottomNav.About)
         items.forEach { screen ->
             NavigationBarItem(
-                icon = { Icon(screen.icon, contentDescription = null) },
-                label = { Text(stringResource(screen.title!!)) },
+                icon = { Icon(imageVector = screen.icon, contentDescription = null) },
+                label = { Text(text = stringResource(screen.title!!)) },
                 selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
                 onClick = {
                     navController.navigate(screen.route) {

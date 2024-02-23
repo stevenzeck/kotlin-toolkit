@@ -58,7 +58,7 @@ fun NavigationList(
                         onCatalogSelected(catalog.href, catalog.title, catalog.type)
                     }
                 }) {
-                    Text(link.title!!)
+                    Text(text = link.title!!)
                 }
             }
         }

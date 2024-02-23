@@ -90,7 +90,7 @@ fun AboutScreenPreview() {
 }
 
 fun NavGraphBuilder.aboutScreen() {
-    composable(Screen.BottomNav.About.route) {
+    composable(route = Screen.BottomNav.About.route) {
         AboutScreen()
     }
 }

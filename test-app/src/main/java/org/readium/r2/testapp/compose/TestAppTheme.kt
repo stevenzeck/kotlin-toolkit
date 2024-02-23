@@ -22,6 +22,7 @@ fun TestAppTheme(
                 else -> dynamicLightColorScheme(LocalContext.current)
             }
         }
+
         useDarkTheme -> lightColorScheme()
         else -> darkColorScheme()
     }

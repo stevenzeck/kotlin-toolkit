@@ -7,7 +7,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
@@ -108,7 +108,7 @@ fun Loading() {
 fun NavGraphBuilder.bookshelfScreen(
     onOpenBook: (bookId: Long) -> Unit
 ) {
-    composable(Screen.BottomNav.Bookshelf.route) {
+    composable(route = Screen.BottomNav.Bookshelf.route) {
         BookshelfScreen(
             onOpenBook = onOpenBook
         )
