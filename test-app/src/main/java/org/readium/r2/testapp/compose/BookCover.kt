@@ -30,9 +30,11 @@ import org.readium.r2.testapp.R
 @Composable
 fun BookCover(
     title: String?,
-    coverImage: File,
+    //TODO clean these two up once bookshelf is working
+    coverImage: File? = null,
+    coverImageHref: String? = null,
     onItemSelected: () -> Unit,
-    onItemLongSelected: () -> Unit
+    onItemLongSelected: (() -> Unit)? = null
 ) {
     Box(
         modifier = Modifier
@@ -41,7 +43,11 @@ fun BookCover(
             .combinedClickable(
                 onClick = { onItemSelected() },
                 onLongClickLabel = stringResource(id = R.string.delete),
-                onLongClick = { onItemLongSelected() }
+                onLongClick = {
+                    if (onItemLongSelected != null) {
+                        onItemLongSelected()
+                    }
+                }
             )
     ) {
         Box(
@@ -56,7 +62,7 @@ fun BookCover(
 //            )
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
-                    .data(coverImage)
+                    .data(coverImage ?: coverImageHref)
                     .build(),
                 placeholder = painterResource(R.drawable.cover),
                 contentDescription = stringResource(R.string.cover_image),
@@ -89,7 +95,6 @@ fun BookCoverPreview() {
     BookCover(
         "Moby Dick",
         File("https://test.opds.io/assets/moby/small.jpg"),
-        onItemSelected = {},
-        onItemLongSelected = {}
-    )
+        onItemSelected = {}
+    ) {}
 }

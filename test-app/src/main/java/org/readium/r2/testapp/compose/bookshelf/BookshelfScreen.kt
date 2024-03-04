@@ -3,11 +3,13 @@ package org.readium.r2.testapp.compose.bookshelf
 import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
@@ -20,9 +22,11 @@ import org.readium.r2.testapp.data.model.Book
 
 @Composable
 internal fun BookshelfScreen(
+    modifier: Modifier = Modifier,
     viewModel: BookshelfViewModel = viewModel(),
     onOpenBook: (bookId: Long) -> Unit
 ) {
+    Loading()
 //    val listState = rememberLazyGridState()
 //    val uiState by viewModel.uiState.collectAsState()
 //    val context = LocalContext.current
@@ -93,16 +97,15 @@ fun BookshelfList(
             BookCover(
                 title = books[index].title,
                 coverImage = coverImageFile,
-                onItemSelected = { openBook(books[index]) },
-                onItemLongSelected = { onItemLongSelected(books[index]) }
-            )
+                onItemSelected = { openBook(books[index]) }
+            ) { onItemLongSelected(books[index]) }
         }
     }
 }
 
 @Composable
-fun Loading() {
-    Text(text = "Loading...")
+fun Loading(modifier: Modifier = Modifier) {
+    Text(modifier = modifier.fillMaxSize(), text = "Loading...")
 }
 
 fun NavGraphBuilder.bookshelfScreen(

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -25,10 +26,12 @@ import org.readium.r2.testapp.R
 import org.readium.r2.testapp.compose.Screen
 
 @Composable
-internal fun AboutScreen() {
+internal fun AboutScreen(modifier: Modifier = Modifier) {
     Column(
         verticalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = Modifier.padding(15.dp)
+        modifier = modifier
+            .padding(15.dp)
+            .fillMaxSize()
     ) {
         HeadingText(text = stringResource(R.string.app_version_header))
         InfoRow(
@@ -47,7 +50,7 @@ internal fun AboutScreen() {
         Image(
             painter = painterResource(id = R.drawable.repfr),
             contentDescription = stringResource(id = R.string.repfr),
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxWidth()
                 .align(Alignment.CenterHorizontally)
         )
@@ -64,7 +67,7 @@ private fun HeadingText(text: String) {
 }
 
 @Composable
-private fun InfoRow(label: String, value: String) {
+private fun InfoRow(modifier: Modifier = Modifier, label: String, value: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = label,
@@ -74,7 +77,7 @@ private fun InfoRow(label: String, value: String) {
                 .width(120.dp)
                 .padding(end = 8.dp)
         )
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = modifier.width(16.dp))
         Text(
             text = value,
             fontSize = 18.sp,

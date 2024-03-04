@@ -2,7 +2,6 @@ package org.readium.r2.testapp.compose
 
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -70,12 +69,9 @@ fun ReadiumTestApp() {
                 navController = appState.navController,
                 startDestination = Screen.BottomNav.Bookshelf.route,
                 modifier = Modifier
-                    .padding(it)
-                    .fillMaxSize(),
+                    .padding(it),
                 enterTransition = { EnterTransition.None },
-                exitTransition = { ExitTransition.None },
-                popEnterTransition = { EnterTransition.None },
-                popExitTransition = { ExitTransition.None },
+                exitTransition = { ExitTransition.None }
             ) {
                 bookshelfScreen(
                     onOpenBook = { bookId ->
