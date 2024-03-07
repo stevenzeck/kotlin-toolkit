@@ -29,6 +29,7 @@ import org.readium.r2.testapp.R
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BookCover(
+    modifier: Modifier = Modifier,
     title: String?,
     //TODO clean these two up once bookshelf is working
     coverImage: File? = null,
@@ -37,7 +38,7 @@ fun BookCover(
     onItemLongSelected: (() -> Unit)? = null
 ) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .height(200.dp)
             .width(120.dp)
             .combinedClickable(
@@ -51,15 +52,9 @@ fun BookCover(
             )
     ) {
         Box(
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxSize()
         ) {
-//            Image(
-//                painter = rememberAsyncImagePainter(coverImage),
-//                contentDescription = stringResource(id = R.string.cover_image),
-//                modifier = Modifier.fillMaxSize(),
-//                contentScale = ContentScale.Crop
-//            )
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(coverImage ?: coverImageHref)
@@ -67,10 +62,10 @@ fun BookCover(
                 placeholder = painterResource(R.drawable.cover),
                 contentDescription = stringResource(R.string.cover_image),
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
+                modifier = modifier.fillMaxSize()
             )
             Box(
-                modifier = Modifier
+                modifier = modifier
                     .align(Alignment.BottomCenter)
                     .background(Color.Black.copy(alpha = 0.5f))
                     .fillMaxWidth(),
@@ -78,7 +73,7 @@ fun BookCover(
                 if (title != null) {
                     Text(
                         text = title,
-                        modifier = Modifier.padding(16.dp),
+                        modifier = modifier.padding(16.dp),
                         color = Color.White,
                         fontSize = 12.sp
                     )
@@ -93,8 +88,8 @@ fun BookCover(
 @Composable
 fun BookCoverPreview() {
     BookCover(
-        "Moby Dick",
-        File("https://test.opds.io/assets/moby/small.jpg"),
+        title = "Moby Dick",
+        coverImage = File("https://test.opds.io/assets/moby/small.jpg"),
         onItemSelected = {}
     ) {}
 }

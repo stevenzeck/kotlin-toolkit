@@ -1,23 +1,34 @@
 package org.readium.r2.testapp.compose.catalogs.catalogdetail
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import org.readium.r2.shared.opds.Group
 import org.readium.r2.shared.publication.Link
 import org.readium.r2.shared.publication.Publication
 import org.readium.r2.shared.publication.opds.images
+import org.readium.r2.testapp.R
 import org.readium.r2.testapp.compose.BookCover
 import org.readium.r2.testapp.compose.bookshelf.Loading
-import org.readium.r2.testapp.data.model.Catalog
 
 @Composable
 internal fun CatalogDetailScreen(
@@ -27,11 +38,12 @@ internal fun CatalogDetailScreen(
     onCatalogSelected: (String, String, Int) -> Unit,
 ) {
     val uiState by viewModel.catalogUiState.collectAsStateWithLifecycle()
+    val scrollState = rememberScrollState()
 
     when (uiState) {
         is CatalogUiState.Loading -> Loading()
         is CatalogUiState.Success -> {
-            Column(modifier = modifier.fillMaxSize()) {
+            Column(modifier = modifier.fillMaxSize().verticalScroll(state = scrollState)) {
                 NavigationList(
                     type = (uiState as CatalogUiState.Success).parseData.feed?.type,
                     navigationLinks = (uiState as CatalogUiState.Success).parseData.feed?.navigation,
@@ -39,7 +51,14 @@ internal fun CatalogDetailScreen(
                 )
                 (uiState as CatalogUiState.Success).parseData.feed?.publications?.let {
                     PublicationsList(
-                        publications = it,
+                        publications = it, onPublicationSelected = onPublicationSelected
+                    )
+                }
+                (uiState as CatalogUiState.Success).parseData.feed?.groups?.let {
+                    GroupList(
+                        type = (uiState as CatalogUiState.Success).parseData.feed?.type,
+                        groups = it,
+                        onCatalogSelected = onCatalogSelected,
                         onPublicationSelected = onPublicationSelected
                     )
                 }
@@ -59,16 +78,9 @@ fun NavigationList(
     Column {
         if (navigationLinks != null) {
             for (link in navigationLinks) {
-                val catalog = type?.let {
-                    Catalog(
-                        href = link.href.toString(),
-                        title = link.title!!,
-                        type = it
-                    )
-                }
                 Button(onClick = {
-                    if (catalog != null) {
-                        onCatalogSelected(catalog.href, catalog.title, catalog.type)
+                    if (type != null) {
+                        onCatalogSelected(link.href.toString(), link.title!!, type)
                     }
                 }) {
                     Text(text = link.title!!)
@@ -87,18 +99,41 @@ fun PublicationsList(
         items(publications) { publication ->
             val coverImage = publication.linkWithRel("http://opds-spec.org/image/thumbnail")?.href
                 ?: publication.images.firstOrNull()?.href
-            BookCover(
-                title = publication.metadata.title,
+            BookCover(title = publication.metadata.title,
                 coverImageHref = coverImage.toString(),
-                onItemSelected = { onPublicationSelected(publication) }
-            )
+                onItemSelected = { onPublicationSelected(publication) })
         }
     }
 }
 
 @Composable
 fun GroupList(
-    groups: List<Group>
+    type: Int?,
+    groups: List<Group>,
+    onCatalogSelected: (String, String, Int) -> Unit,
+    onPublicationSelected: (Publication) -> Unit,
 ) {
-
+    groups.forEach { group ->
+        Row(
+            modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(text = group.title, style = MaterialTheme.typography.titleLarge)
+            if (group.links.isNotEmpty() && type != null) {
+                IconButton(onClick = {
+                    onCatalogSelected(
+                        group.links.first().href.toString(), group.title, type
+                    )
+                }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Default.ArrowForward,
+                        contentDescription = stringResource(id = R.string.catalog_list_more)
+                    )
+                }
+            }
+        }
+        PublicationsList(
+            publications = group.publications, onPublicationSelected = onPublicationSelected
+        )
+        NavigationList(type, group.navigation, onCatalogSelected = onCatalogSelected)
+    }
 }
