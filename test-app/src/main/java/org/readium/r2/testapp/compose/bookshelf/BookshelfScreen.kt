@@ -12,12 +12,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavGraphBuilder
-import androidx.navigation.compose.composable
 import java.io.File
 import org.readium.r2.testapp.bookshelf.BookshelfViewModel
 import org.readium.r2.testapp.compose.BookCover
-import org.readium.r2.testapp.compose.Screen
 import org.readium.r2.testapp.data.model.Book
 
 @Composable
@@ -106,14 +103,4 @@ fun BookshelfList(
 @Composable
 fun Loading(modifier: Modifier = Modifier) {
     Text(modifier = modifier.fillMaxSize(), text = "Loading...")
-}
-
-fun NavGraphBuilder.bookshelfScreen(
-    onOpenBook: (bookId: Long) -> Unit
-) {
-    composable(route = Screen.BottomNav.Bookshelf.route) {
-        BookshelfScreen(
-            onOpenBook = onOpenBook
-        )
-    }
 }

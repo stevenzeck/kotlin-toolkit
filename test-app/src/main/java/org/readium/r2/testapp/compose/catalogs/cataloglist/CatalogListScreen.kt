@@ -24,16 +24,16 @@ internal fun CatalogListScreen(
     val listState = rememberLazyListState()
     val uiState by viewModel.catalogListUiState.collectAsStateWithLifecycle()
 
-    when (uiState) {
+    when (val currentState = uiState) {
         CatalogListUiState.Loading -> Loading()
-        is CatalogListUiState.Success -> if ((uiState as CatalogListUiState.Success).catalogs.isNotEmpty()) {
+        is CatalogListUiState.Success -> if (currentState.catalogs.isNotEmpty()) {
             LazyColumn(
                 modifier = modifier.fillMaxSize(),
                 state = listState,
                 contentPadding = PaddingValues(10.dp)
             ) {
                 items(
-                    items = (uiState as CatalogListUiState.Success).catalogs,
+                    items = currentState.catalogs,
                     key = { catalog ->
                         catalog.id!!
                     }
@@ -51,6 +51,6 @@ internal fun CatalogListScreen(
             }
         }
 
-        is CatalogListUiState.Failed -> Unit
+        is CatalogListUiState.Failed -> Text(text = "Error: ${currentState.error}")
     }
 }

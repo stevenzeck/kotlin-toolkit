@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -20,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import org.readium.r2.shared.opds.Group
@@ -40,23 +42,27 @@ internal fun CatalogDetailScreen(
     val uiState by viewModel.catalogUiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
 
-    when (uiState) {
+    when (val currentState = uiState) {
         is CatalogUiState.Loading -> Loading()
         is CatalogUiState.Success -> {
-            Column(modifier = modifier.fillMaxSize().verticalScroll(state = scrollState)) {
+            Column(
+                modifier = modifier
+                    .fillMaxSize()
+                    .verticalScroll(state = scrollState)
+            ) {
                 NavigationList(
-                    type = (uiState as CatalogUiState.Success).parseData.feed?.type,
-                    navigationLinks = (uiState as CatalogUiState.Success).parseData.feed?.navigation,
+                    type = currentState.parseData.feed?.type,
+                    navigationLinks = currentState.parseData.feed?.navigation,
                     onCatalogSelected = onCatalogSelected
                 )
-                (uiState as CatalogUiState.Success).parseData.feed?.publications?.let {
+                currentState.parseData.feed?.publications?.let {
                     PublicationsList(
                         publications = it, onPublicationSelected = onPublicationSelected
                     )
                 }
-                (uiState as CatalogUiState.Success).parseData.feed?.groups?.let {
+                currentState.parseData.feed?.groups?.let {
                     GroupList(
-                        type = (uiState as CatalogUiState.Success).parseData.feed?.type,
+                        type = currentState.parseData.feed?.type,
                         groups = it,
                         onCatalogSelected = onCatalogSelected,
                         onPublicationSelected = onPublicationSelected
@@ -65,7 +71,7 @@ internal fun CatalogDetailScreen(
             }
         }
 
-        is CatalogUiState.Failed -> Unit
+        is CatalogUiState.Failed -> Text(text = "Error: ${currentState.error}")
     }
 }
 
@@ -99,7 +105,9 @@ fun PublicationsList(
         items(publications) { publication ->
             val coverImage = publication.linkWithRel("http://opds-spec.org/image/thumbnail")?.href
                 ?: publication.images.firstOrNull()?.href
-            BookCover(title = publication.metadata.title,
+            BookCover(
+                modifier = Modifier.padding(horizontal = 8.dp),
+                title = publication.metadata.title,
                 coverImageHref = coverImage.toString(),
                 onItemSelected = { onPublicationSelected(publication) })
         }
@@ -134,6 +142,10 @@ fun GroupList(
         PublicationsList(
             publications = group.publications, onPublicationSelected = onPublicationSelected
         )
-        NavigationList(type, group.navigation, onCatalogSelected = onCatalogSelected)
+        NavigationList(
+            type = type,
+            navigationLinks = group.navigation,
+            onCatalogSelected = onCatalogSelected
+        )
     }
 }

@@ -20,10 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavGraphBuilder
-import androidx.navigation.compose.composable
 import org.readium.r2.testapp.R
-import org.readium.r2.testapp.compose.Screen
 
 @Composable
 internal fun AboutScreen(modifier: Modifier = Modifier) {
@@ -90,10 +87,4 @@ private fun InfoRow(modifier: Modifier = Modifier, label: String, value: String)
 @Composable
 fun AboutScreenPreview() {
     AboutScreen()
-}
-
-fun NavGraphBuilder.aboutScreen() {
-    composable(route = Screen.BottomNav.About.route) {
-        AboutScreen()
-    }
 }
