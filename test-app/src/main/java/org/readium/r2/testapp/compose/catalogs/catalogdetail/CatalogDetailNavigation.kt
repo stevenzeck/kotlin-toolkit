@@ -6,7 +6,6 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import java.net.URLEncoder
-import org.readium.r2.shared.publication.Publication
 import org.readium.r2.testapp.compose.Screen
 
 fun NavController.navigateToCatalog(href: String, title: String, type: Int) =
@@ -20,7 +19,7 @@ fun NavController.navigateToCatalog(href: String, title: String, type: Int) =
     )
 
 fun NavGraphBuilder.catalogScreen(
-    onPublicationSelected: (publication: Publication) -> Unit,
+    onPublicationSelected: () -> Unit,
     onCatalogSelected: (href: String, title: String, type: Int) -> Unit,
 ) {
     composable(

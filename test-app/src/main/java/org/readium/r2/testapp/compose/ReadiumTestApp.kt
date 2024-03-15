@@ -22,6 +22,8 @@ import org.readium.r2.testapp.compose.bookshelf.bookshelfScreen
 import org.readium.r2.testapp.compose.catalogs.catalogdetail.catalogScreen
 import org.readium.r2.testapp.compose.catalogs.catalogdetail.navigateToCatalog
 import org.readium.r2.testapp.compose.catalogs.cataloglist.catalogListScreen
+import org.readium.r2.testapp.compose.catalogs.publicationdetail.navigateToPublicationDetail
+import org.readium.r2.testapp.compose.catalogs.publicationdetail.publicationDetailScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,12 +89,14 @@ fun ReadiumTestApp() {
 
                 catalogScreen(
                     onPublicationSelected = {
-
+                        appState.navController.navigateToPublicationDetail()
                     },
                     onCatalogSelected = { href, title, type ->
                         appState.navController.navigateToCatalog(href, title, type)
                     }
                 )
+
+                publicationDetailScreen()
 
                 aboutScreen()
             }

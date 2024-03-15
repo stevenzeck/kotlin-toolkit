@@ -3,11 +3,8 @@ package org.readium.r2.testapp.compose.catalogs.catalogdetail
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -34,15 +31,17 @@ import org.readium.r2.shared.publication.opds.images
 import org.readium.r2.testapp.R
 import org.readium.r2.testapp.compose.BookCover
 import org.readium.r2.testapp.compose.bookshelf.Loading
+import org.readium.r2.testapp.compose.catalogs.publicationdetail.PublicationDetailViewModel
 
 @Composable
 internal fun CatalogDetailScreen(
     modifier: Modifier = Modifier,
     viewModel: CatalogDetailViewModel = viewModel(),
-    onPublicationSelected: (Publication) -> Unit,
+    onPublicationSelected: () -> Unit,
     onCatalogSelected: (String, String, Int) -> Unit,
 ) {
     val uiState by viewModel.catalogUiState.collectAsStateWithLifecycle()
+    val publicationDetailViewModel: PublicationDetailViewModel = viewModel()
     val scrollState = rememberScrollState()
 
     when (val currentState = uiState) {
@@ -60,7 +59,10 @@ internal fun CatalogDetailScreen(
                 )
                 currentState.parseData.feed?.publications?.let {
                     PublicationsList(
-                        publications = it, onPublicationSelected = onPublicationSelected
+                        publications = it, onPublicationSelected = { publication ->
+                            publicationDetailViewModel.publication = publication
+                            onPublicationSelected()
+                        }
                     )
                 }
                 currentState.parseData.feed?.groups?.let {
@@ -68,7 +70,10 @@ internal fun CatalogDetailScreen(
                         type = currentState.parseData.feed?.type,
                         groups = it,
                         onCatalogSelected = onCatalogSelected,
-                        onPublicationSelected = onPublicationSelected
+                        onPublicationSelected = { publication ->
+                            publicationDetailViewModel.publication = publication
+                            onPublicationSelected()
+                        }
                     )
                 }
             }
