@@ -9,8 +9,8 @@ import org.readium.r2.testapp.compose.Screen
 fun NavController.navigateToPublicationDetail() =
     this.navigate(Screen.PublicationDetail.route)
 
-fun NavGraphBuilder.publicationDetailScreen() {
+fun NavGraphBuilder.publicationDetailScreen(publicationDetailViewModel: PublicationDetailViewModel) {
     composable(route = Screen.PublicationDetail.route) {
-        PublicationDetailScreen()
+        PublicationDetailScreen(publicationDetailViewModel = publicationDetailViewModel)
     }
 }

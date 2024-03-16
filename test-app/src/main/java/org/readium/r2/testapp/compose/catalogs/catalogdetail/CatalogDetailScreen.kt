@@ -37,11 +37,11 @@ import org.readium.r2.testapp.compose.catalogs.publicationdetail.PublicationDeta
 internal fun CatalogDetailScreen(
     modifier: Modifier = Modifier,
     viewModel: CatalogDetailViewModel = viewModel(),
+    publicationDetailViewModel: PublicationDetailViewModel,
     onPublicationSelected: () -> Unit,
     onCatalogSelected: (String, String, Int) -> Unit,
 ) {
     val uiState by viewModel.catalogUiState.collectAsStateWithLifecycle()
-    val publicationDetailViewModel: PublicationDetailViewModel = viewModel()
     val scrollState = rememberScrollState()
 
     when (val currentState = uiState) {
@@ -60,7 +60,7 @@ internal fun CatalogDetailScreen(
                 currentState.parseData.feed?.publications?.let {
                     PublicationsList(
                         publications = it, onPublicationSelected = { publication ->
-                            publicationDetailViewModel.publication = publication
+                            publicationDetailViewModel.updatePublicationSelection(publication)
                             onPublicationSelected()
                         }
                     )
@@ -71,7 +71,7 @@ internal fun CatalogDetailScreen(
                         groups = it,
                         onCatalogSelected = onCatalogSelected,
                         onPublicationSelected = { publication ->
-                            publicationDetailViewModel.publication = publication
+                            publicationDetailViewModel.updatePublicationSelection(publication)
                             onPublicationSelected()
                         }
                     )

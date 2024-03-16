@@ -15,6 +15,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import org.readium.r2.testapp.R
 import org.readium.r2.testapp.compose.about.aboutScreen
@@ -22,6 +23,7 @@ import org.readium.r2.testapp.compose.bookshelf.bookshelfScreen
 import org.readium.r2.testapp.compose.catalogs.catalogdetail.catalogScreen
 import org.readium.r2.testapp.compose.catalogs.catalogdetail.navigateToCatalog
 import org.readium.r2.testapp.compose.catalogs.cataloglist.catalogListScreen
+import org.readium.r2.testapp.compose.catalogs.publicationdetail.PublicationDetailViewModel
 import org.readium.r2.testapp.compose.catalogs.publicationdetail.navigateToPublicationDetail
 import org.readium.r2.testapp.compose.catalogs.publicationdetail.publicationDetailScreen
 
@@ -32,6 +34,7 @@ fun ReadiumTestApp() {
     TestAppTheme {
 
         val appState = rememberTestAppState()
+        val publicationDetailViewModel: PublicationDetailViewModel = viewModel()
 
         Scaffold(
             topBar = {
@@ -88,6 +91,7 @@ fun ReadiumTestApp() {
                 )
 
                 catalogScreen(
+                    publicationDetailViewModel = publicationDetailViewModel,
                     onPublicationSelected = {
                         appState.navController.navigateToPublicationDetail()
                     },
@@ -96,7 +100,7 @@ fun ReadiumTestApp() {
                     }
                 )
 
-                publicationDetailScreen()
+                publicationDetailScreen(publicationDetailViewModel = publicationDetailViewModel)
 
                 aboutScreen()
             }
