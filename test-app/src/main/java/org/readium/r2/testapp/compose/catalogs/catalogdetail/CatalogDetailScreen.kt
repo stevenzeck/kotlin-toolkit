@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -104,9 +106,31 @@ fun NavigationList(
     }
 }
 
-//TODO this should actually be a grid. Only the Group should use a LazyRow
+//TODO make this reusable
 @Composable
 fun PublicationsList(
+    publications: List<Publication>,
+    onPublicationSelected: (Publication) -> Unit,
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = 120.dp)
+    ) {
+        items(publications.size) { index ->
+            val publication = publications[index]
+            val coverImage = publication.linkWithRel("http://opds-spec.org/image/thumbnail")?.href
+                ?: publication.images.firstOrNull()?.href
+            BookCover(
+                title = publication.metadata.title,
+                coverImageHref = coverImage.toString(),
+                onItemSelected = { onPublicationSelected(publication) }
+            )
+        }
+    }
+}
+
+//TODO make this reusable
+@Composable
+fun PublicationsHorizontalScrollList(
     publications: List<Publication>,
     onPublicationSelected: (Publication) -> Unit,
 ) {
@@ -152,7 +176,7 @@ fun GroupList(
                 }
             }
         }
-        PublicationsList(
+        PublicationsHorizontalScrollList(
             publications = group.publications, onPublicationSelected = onPublicationSelected
         )
         NavigationList(
