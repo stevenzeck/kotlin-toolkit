@@ -49,6 +49,8 @@ public interface LcpService {
     /**
      * Acquires a protected publication from a standalone LCPL's bytes.
      *
+     * License will be injected into the publication archive without explicitly calling
+     * [injectLicenseDocument].
      * You can cancel the on-going acquisition by cancelling its parent coroutine context.
      *
      * @param onProgress Callback to follow the acquisition progress from 0.0 to 1.0.
@@ -61,6 +63,8 @@ public interface LcpService {
     /**
      * Acquires a protected publication from a standalone LCPL file.
      *
+     * License will be injected into the publication archive without explicitly calling
+     * [injectLicenseDocument].
      * You can cancel the on-going acquisition by cancelling its parent coroutine context.
      *
      * @param onProgress Callback to follow the acquisition progress from 0.0 to 1.0.
@@ -113,6 +117,16 @@ public interface LcpService {
         authentication: LcpAuthenticating,
         allowUserInteraction: Boolean
     ): Try<LcpLicense, LcpError>
+
+    /**
+     * Injects a [licenseDocument] into the given [publicationFile] package.
+     *
+     * This is useful if you downloaded the publication yourself instead of using [acquirePublication].
+     */
+    public suspend fun injectLicenseDocument(
+        licenseDocument: LicenseDocument,
+        publicationFile: File
+    ): Try<Unit, LcpError>
 
     /**
      * Creates a [ContentProtection] instance which can be used with a Streamer to unlock
