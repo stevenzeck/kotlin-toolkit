@@ -7,10 +7,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Button
@@ -44,39 +43,58 @@ internal fun CatalogDetailScreen(
     onCatalogSelected: (String, String, Int) -> Unit,
 ) {
     val uiState by viewModel.catalogUiState.collectAsStateWithLifecycle()
-    val scrollState = rememberScrollState()
 
     when (val currentState = uiState) {
         is CatalogUiState.Loading -> Loading()
         is CatalogUiState.Success -> {
-            Column(
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 120.dp),
                 modifier = modifier
                     .fillMaxSize()
-                    .verticalScroll(state = scrollState)
             ) {
-                NavigationList(
-                    type = currentState.parseData.feed?.type,
-                    navigationLinks = currentState.parseData.feed?.navigation,
-                    onCatalogSelected = onCatalogSelected
-                )
-                currentState.parseData.feed?.publications?.let {
-                    PublicationsList(
-                        publications = it, onPublicationSelected = { publication ->
-                            publicationDetailViewModel.updatePublicationSelection(publication)
-                            onPublicationSelected()
-                        }
+                item(
+                    span = {
+                        GridItemSpan(maxLineSpan)
+                    }
+                ) {
+                    NavigationList(
+                        type = currentState.parseData.feed?.type,
+                        navigationLinks = currentState.parseData.feed?.navigation,
+                        onCatalogSelected = onCatalogSelected
                     )
                 }
+                currentState.parseData.feed?.publications?.let { publications ->
+                    items(publications.size) { index ->
+                        val publication = publications[index]
+                        val coverImage =
+                            publication.linkWithRel("http://opds-spec.org/image/thumbnail")?.href
+                                ?: publication.images.firstOrNull()?.href
+                        BookCover(
+                            title = publication.metadata.title,
+                            coverImageHref = coverImage.toString(),
+                            onItemSelected = {
+                                publicationDetailViewModel.updatePublicationSelection(publication)
+                                onPublicationSelected()
+                            }
+                        )
+                    }
+                }
                 currentState.parseData.feed?.groups?.let {
-                    GroupList(
-                        type = currentState.parseData.feed?.type,
-                        groups = it,
-                        onCatalogSelected = onCatalogSelected,
-                        onPublicationSelected = { publication ->
-                            publicationDetailViewModel.updatePublicationSelection(publication)
-                            onPublicationSelected()
+                    item(
+                        span = {
+                            GridItemSpan(maxLineSpan)
                         }
-                    )
+                    ) {
+                        GroupList(
+                            type = currentState.parseData.feed?.type,
+                            groups = it,
+                            onCatalogSelected = onCatalogSelected,
+                            onPublicationSelected = { publication ->
+                                publicationDetailViewModel.updatePublicationSelection(publication)
+                                onPublicationSelected()
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -94,36 +112,16 @@ fun NavigationList(
     Column {
         if (navigationLinks != null) {
             for (link in navigationLinks) {
-                Button(onClick = {
-                    if (type != null) {
-                        onCatalogSelected(link.href.toString(), link.title!!, type)
+                Button(
+                    onClick = {
+                        if (type != null) {
+                            onCatalogSelected(link.href.toString(), link.title!!, type)
+                        }
                     }
-                }) {
+                ) {
                     Text(text = link.title!!)
                 }
             }
-        }
-    }
-}
-
-//TODO make this reusable
-@Composable
-fun PublicationsList(
-    publications: List<Publication>,
-    onPublicationSelected: (Publication) -> Unit,
-) {
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 120.dp)
-    ) {
-        items(publications.size) { index ->
-            val publication = publications[index]
-            val coverImage = publication.linkWithRel("http://opds-spec.org/image/thumbnail")?.href
-                ?: publication.images.firstOrNull()?.href
-            BookCover(
-                title = publication.metadata.title,
-                coverImageHref = coverImage.toString(),
-                onItemSelected = { onPublicationSelected(publication) }
-            )
         }
     }
 }
@@ -156,33 +154,43 @@ fun GroupList(
     onCatalogSelected: (String, String, Int) -> Unit,
     onPublicationSelected: (Publication) -> Unit,
 ) {
-    groups.forEach { group ->
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(text = group.title, style = MaterialTheme.typography.titleLarge)
-            if (group.links.isNotEmpty() && type != null) {
-                IconButton(onClick = {
-                    onCatalogSelected(
-                        group.links.first().href.toString(), group.title, type
-                    )
-                }) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Default.ArrowForward,
-                        contentDescription = stringResource(id = R.string.catalog_list_more)
-                    )
+    Column {
+        groups.forEach { group ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = group.title,
+                    style = MaterialTheme.typography.titleLarge
+                )
+                if (group.links.isNotEmpty() && type != null) {
+                    IconButton(
+                        onClick = {
+                            onCatalogSelected(
+                                group.links.first().href.toString(), group.title, type
+                            )
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Default.ArrowForward,
+                            contentDescription = stringResource(id = R.string.catalog_list_more)
+                        )
+                    }
                 }
             }
+
+            PublicationsHorizontalScrollList(
+                publications = group.publications,
+                onPublicationSelected = onPublicationSelected
+            )
+
+            NavigationList(
+                type = type,
+                navigationLinks = group.navigation,
+                onCatalogSelected = onCatalogSelected
+            )
         }
-        PublicationsHorizontalScrollList(
-            publications = group.publications, onPublicationSelected = onPublicationSelected
-        )
-        NavigationList(
-            type = type,
-            navigationLinks = group.navigation,
-            onCatalogSelected = onCatalogSelected
-        )
     }
 }
