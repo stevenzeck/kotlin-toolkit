@@ -28,8 +28,10 @@ class CatalogDetailViewModel(application: Application, savedStateHandle: SavedSt
     val catalogUiState: StateFlow<CatalogUiState> = flow {
         val result = viewModelScope.async { parseCatalog(href, type) }
         emit(
-            result.await().fold(onSuccess = { parsedData -> CatalogUiState.Success(parsedData) },
-                onFailure = { exception -> CatalogUiState.Failed(exception) })
+            result.await().fold(
+                onSuccess = { parsedData -> CatalogUiState.Success(parsedData) },
+                onFailure = { exception -> CatalogUiState.Failed(exception) }
+            )
         )
     }.stateIn(
         scope = viewModelScope,

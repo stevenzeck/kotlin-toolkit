@@ -38,13 +38,15 @@ internal fun CatalogListScreen(
                         catalog.id!!
                     }
                 ) { catalog ->
-                    Button(onClick = {
-                        onCatalogSelected(
-                            catalog.href,
-                            catalog.title,
-                            catalog.type
-                        )
-                    }) {
+                    Button(
+                        onClick = {
+                            onCatalogSelected(
+                                catalog.href,
+                                catalog.title,
+                                catalog.type
+                            )
+                        }
+                    ) {
                         Text(catalog.title)
                     }
                 }

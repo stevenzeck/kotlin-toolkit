@@ -12,13 +12,11 @@ import org.readium.r2.shared.publication.Publication
 
 class PublicationDetailViewModel(application: Application) : AndroidViewModel(application) {
 
-//    lateinit var publication: Publication
-
     private val _publication = MutableStateFlow<Publication?>(null)
     val publication: StateFlow<Publication?> = _publication
 
-    fun updatePublicationSelection(newThing: Publication) {
-        _publication.value = newThing
+    fun updatePublicationSelection(newPublication: Publication) {
+        _publication.value = newPublication
     }
 
     val publicationDetailUiState: StateFlow<PublicationDetailUiState> =
