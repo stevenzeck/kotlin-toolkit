@@ -28,6 +28,7 @@ import org.readium.r2.shared.publication.protection.ContentProtection
 import org.readium.r2.shared.util.Try
 import org.readium.r2.shared.util.asset.Asset
 import org.readium.r2.shared.util.asset.AssetRetriever
+import org.readium.r2.shared.util.asset.ContainerAsset
 import org.readium.r2.shared.util.format.Format
 
 /**
@@ -119,6 +120,13 @@ public interface LcpService {
     ): Try<LcpLicense, LcpError>
 
     /**
+     * Retrieves the license document from a LCP-protected publication asset.
+     */
+    public suspend fun retrieveLicenseDocument(
+        asset: ContainerAsset
+    ): Try<LicenseDocument, LcpError>
+
+    /**
      * Injects a [licenseDocument] into the given [publicationFile] package.
      *
      * This is useful if you downloaded the publication yourself instead of using [acquirePublication].
@@ -166,10 +174,15 @@ public interface LcpService {
 
         /**
          * LCP service factory.
+         *
+         * @param deviceName Device name used when registering a license to an LSD server.
+         * If not provided, the device name will be generated from the device's manufacturer and
+         * model.
          */
         public operator fun invoke(
             context: Context,
-            assetRetriever: AssetRetriever
+            assetRetriever: AssetRetriever,
+            deviceName: String? = null
         ): LcpService? {
             if (!LcpClient.isAvailable()) {
                 return null
@@ -181,6 +194,7 @@ public interface LcpService {
             val licenseRepository = LicensesRepository(db)
             val network = NetworkService()
             val device = DeviceService(
+                deviceName = deviceName,
                 repository = deviceRepository,
                 network = network,
                 context = context

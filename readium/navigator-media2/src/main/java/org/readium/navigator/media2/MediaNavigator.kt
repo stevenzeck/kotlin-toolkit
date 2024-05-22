@@ -36,6 +36,7 @@ import org.readium.navigator.media2.MediaNavigator.Companion.create
 import org.readium.r2.navigator.Navigator
 import org.readium.r2.navigator.extensions.normalizeLocator
 import org.readium.r2.shared.DelicateReadiumApi
+import org.readium.r2.shared.InternalReadiumApi
 import org.readium.r2.shared.publication.Link
 import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.publication.Publication
@@ -55,8 +56,10 @@ import timber.log.Timber
  * providing [create] with it. If you don't, ExoPlayer will be used, without cache.
  * You can build your own [SessionPlayer] based on [ExoPlayer] using [ExoPlayerDataSource].
  */
-@ExperimentalMedia2
-@Deprecated("Use the new AudioNavigator from the readium-navigator-media-audio module.")
+@Deprecated(
+    "Use the new AudioNavigator from the readium-navigator-media-audio module. This class will be removed in a future 3.x release."
+)
+@InternalReadiumApi
 @OptIn(ExperimentalTime::class)
 public class MediaNavigator private constructor(
     public val publication: Publication,
@@ -371,32 +374,28 @@ public class MediaNavigator private constructor(
      * Compatibility
      */
 
-    private fun launchAndRun(runnable: suspend () -> Unit, callback: () -> Unit) =
-        coroutineScope.launch { runnable() }.invokeOnCompletion { callback() }
-
-    override fun go(locator: Locator, animated: Boolean, completion: () -> Unit): Boolean {
-        launchAndRun({ go(locator) }, completion)
+    override fun go(locator: Locator, animated: Boolean): Boolean {
+        coroutineScope.launch { go(locator) }
         return true
     }
 
-    override fun go(link: Link, animated: Boolean, completion: () -> Unit): Boolean {
-        launchAndRun({ go(link) }, completion)
-        return true
-    }
-
-    @Suppress("UNUSED_PARAMETER")
-    public fun goForward(animated: Boolean, completion: () -> Unit): Boolean {
-        launchAndRun({ goForward() }, completion)
+    override fun go(link: Link, animated: Boolean): Boolean {
+        coroutineScope.launch { go(link) }
         return true
     }
 
     @Suppress("UNUSED_PARAMETER")
-    public fun goBackward(animated: Boolean, completion: () -> Unit): Boolean {
-        launchAndRun({ goBackward() }, completion)
+    public fun goForward(animated: Boolean): Boolean {
+        coroutineScope.launch { goForward() }
         return true
     }
 
-    @ExperimentalMedia2
+    @Suppress("UNUSED_PARAMETER")
+    public fun goBackward(animated: Boolean): Boolean {
+        coroutineScope.launch { goBackward() }
+        return true
+    }
+
     public companion object {
 
         public suspend fun create(

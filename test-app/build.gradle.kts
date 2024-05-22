@@ -19,7 +19,7 @@ android {
 
         applicationId = "org.readium.r2reader"
 
-        versionName = "3.0.0-alpha.2"
+        versionName = "3.0.0-beta.1"
         versionCode = 300000
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -31,6 +31,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
+        isCoreLibraryDesugaringEnabled = true
     }
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_1_8.toString()
@@ -65,6 +66,8 @@ android {
 }
 
 dependencies {
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
+
     implementation(libs.kotlin.stdlib)
     implementation(libs.androidx.legacy.v4)
 

@@ -25,7 +25,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.readium.r2.navigator.Decoration
-import org.readium.r2.navigator.ExperimentalDecorator
 import org.readium.r2.navigator.HyperlinkNavigator
 import org.readium.r2.navigator.epub.EpubNavigatorFragment
 import org.readium.r2.navigator.image.ImageNavigatorFragment
@@ -56,10 +55,7 @@ import org.readium.r2.testapp.utils.createViewModelFactory
 import org.readium.r2.testapp.utils.extensions.toHtml
 import timber.log.Timber
 
-@OptIn(
-    ExperimentalDecorator::class,
-    ExperimentalReadiumApi::class
-)
+@OptIn(ExperimentalReadiumApi::class)
 class ReaderViewModel(
     private val bookId: Long,
     private val readerRepository: ReaderRepository,
@@ -102,7 +98,10 @@ class ReaderViewModel(
         readerInitData = readerInitData
     )
 
-    fun close() {
+    override fun onCleared() {
+        // When the ReaderViewModel is disposed of, we want to close the publication to avoid
+        // using outdated information (such as the initial location) if the `ReaderActivity` is
+        // opened again with the same book.
         readerRepository.close(bookId)
     }
 

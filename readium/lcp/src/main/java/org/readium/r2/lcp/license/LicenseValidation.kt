@@ -9,7 +9,6 @@
 
 package org.readium.r2.lcp.license
 
-import java.util.*
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.runBlocking
 import org.readium.r2.lcp.BuildConfig.DEBUG
@@ -24,6 +23,7 @@ import org.readium.r2.lcp.service.DeviceService
 import org.readium.r2.lcp.service.LcpClient
 import org.readium.r2.lcp.service.NetworkService
 import org.readium.r2.lcp.service.PassphrasesService
+import org.readium.r2.shared.util.Instant
 import org.readium.r2.shared.util.getOrElse
 import org.readium.r2.shared.util.mediatype.MediaType
 import timber.log.Timber
@@ -35,7 +35,17 @@ internal sealed class Either<A, B> {
 
 private val supportedProfiles = listOf(
     "http://readium.org/lcp/basic-profile",
-    "http://readium.org/lcp/profile-1.0"
+    "http://readium.org/lcp/profile-1.0",
+    "http://readium.org/lcp/profile-2.0",
+    "http://readium.org/lcp/profile-2.1",
+    "http://readium.org/lcp/profile-2.2",
+    "http://readium.org/lcp/profile-2.3",
+    "http://readium.org/lcp/profile-2.4",
+    "http://readium.org/lcp/profile-2.5",
+    "http://readium.org/lcp/profile-2.6",
+    "http://readium.org/lcp/profile-2.7",
+    "http://readium.org/lcp/profile-2.8",
+    "http://readium.org/lcp/profile-2.9"
 )
 
 internal typealias Context = Either<LcpClient.Context, LcpError.LicenseStatus>
@@ -234,7 +244,7 @@ internal class LicenseValidation(
                 transitionTo(State.failure(it.error))
             }
             on<Event.cancelled> {
-                if (DEBUG) Timber.d("State.cancelled)")
+                if (DEBUG) Timber.d("State.cancelled")
                 transitionTo(State.cancelled)
             }
         }
@@ -388,7 +398,7 @@ internal class LicenseValidation(
         statusDocumentTakesPrecedence: Boolean
     ) {
         var error: LcpError.LicenseStatus? = null
-        val now = Date()
+        val now = Instant.now()
         val start = license.rights.start ?: now
         val end = license.rights.end ?: now
         val isLicenseExpired = (start > now || now > end)

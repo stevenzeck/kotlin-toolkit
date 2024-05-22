@@ -42,12 +42,11 @@ import org.readium.r2.shared.util.FileExtension
 import org.readium.r2.shared.util.Try
 import org.readium.r2.shared.util.asset.Asset
 import org.readium.r2.shared.util.asset.AssetRetriever
-import org.readium.r2.shared.util.format.EpubSpecification
+import org.readium.r2.shared.util.asset.ContainerAsset
 import org.readium.r2.shared.util.format.Format
 import org.readium.r2.shared.util.format.FormatHints
 import org.readium.r2.shared.util.format.FormatSpecification
-import org.readium.r2.shared.util.format.LcpSpecification
-import org.readium.r2.shared.util.format.ZipSpecification
+import org.readium.r2.shared.util.format.Specification
 import org.readium.r2.shared.util.getOrElse
 import org.readium.r2.shared.util.mediatype.MediaType
 import timber.log.Timber
@@ -71,14 +70,23 @@ internal class LicensesService(
         licenseDocument: LicenseDocument,
         publicationFile: File
     ): Try<Unit, LcpError> {
+        val hashIsCorrect = licenseDocument.publicationLink.hash
+            ?.let { publicationFile.checkSha256(it) }
+
+        if (hashIsCorrect == false) {
+            return Try.failure(
+                LcpError.Network(Exception("Digest mismatch: download looks corrupted."))
+            )
+        }
+
         val mediaType = licenseDocument.publicationLink.mediaType
         val format = assetRetriever.sniffFormat(publicationFile, FormatHints(mediaType))
             .getOrElse {
                 Format(
                     specification = FormatSpecification(
-                        ZipSpecification,
-                        EpubSpecification,
-                        LcpSpecification
+                        Specification.Zip,
+                        Specification.Epub,
+                        Specification.Lcp
                     ),
                     mediaType = MediaType.EPUB,
                     fileExtension = FileExtension("epub")
@@ -127,6 +135,8 @@ internal class LicensesService(
             val licenseDocument = LicenseDocument(lcpl)
             Timber.d("license ${licenseDocument.json}")
             fetchPublication(licenseDocument, destination, onProgress).let { Try.success(it) }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             tryOrLog { destination.delete() }
             Try.failure(LcpError.wrap(e))
@@ -143,28 +153,28 @@ internal class LicensesService(
 
         Timber.i("LCP destination $destination")
 
-        val mediaType = network.download(
+        val serverMediaType = network.download(
             url,
             destination,
             mediaType = link.mediaType,
             onProgress = onProgress
         )
 
-        license.publicationLink.hash
-            ?.takeIf { destination.checkSha256(it) == false }
-            ?.run {
-                throw LcpException(
-                    LcpError.Network(Exception("Digest mismatch: download looks corrupted."))
-                )
-            }
+        val hashIsCorrect = license.publicationLink.hash
+            ?.let { destination.checkSha256(it) }
+
+        if (hashIsCorrect == false) {
+            throw LcpException(
+                LcpError.Network(Exception("Digest mismatch: download looks corrupted."))
+            )
+        }
 
         val format =
             assetRetriever.sniffFormat(
                 destination,
                 FormatHints(
                     mediaTypes = listOfNotNull(
-                        license.publicationLink.mediaType,
-                        mediaType
+                        license.publicationLink.mediaType ?: serverMediaType
                     )
                 )
             ).getOrElse {
@@ -177,9 +187,9 @@ internal class LicensesService(
                     is AssetRetriever.RetrieveError.FormatNotSupported -> {
                         Format(
                             specification = FormatSpecification(
-                                ZipSpecification,
-                                EpubSpecification,
-                                LcpSpecification
+                                Specification.Zip,
+                                Specification.Epub,
+                                Specification.Lcp
                             ),
                             mediaType = MediaType.EPUB,
                             fileExtension = FileExtension("epub")
@@ -232,6 +242,21 @@ internal class LicensesService(
             Try.success(license)
         } catch (e: Exception) {
             Try.failure(LcpError.wrap(e))
+        }
+
+    override suspend fun retrieveLicenseDocument(
+        asset: ContainerAsset
+    ): Try<LicenseDocument, LcpError> =
+        withContext(Dispatchers.IO) {
+            try {
+                val licenseContainer = createLicenseContainer(context, asset)
+                val licenseData = licenseContainer.read()
+                Try.success(LicenseDocument(licenseData))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Try.failure(LcpError.wrap(e))
+            }
         }
 
     private suspend fun retrieveLicense(
@@ -338,7 +363,7 @@ internal class LicensesService(
 
             // Both error and documents can be null if the user cancelled the passphrase prompt.
             if (documents == null) {
-                throw CancellationException("License validation was interrupted.")
+                throw LcpException(LcpError.MissingPassphrase)
             }
         }
     }

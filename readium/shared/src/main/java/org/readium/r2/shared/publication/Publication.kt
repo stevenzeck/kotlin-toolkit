@@ -15,7 +15,6 @@ import kotlin.reflect.KClass
 import kotlinx.parcelize.Parcelize
 import org.json.JSONObject
 import org.readium.r2.shared.*
-import org.readium.r2.shared.extensions.*
 import org.readium.r2.shared.publication.epub.listOfAudioClips
 import org.readium.r2.shared.publication.epub.listOfVideoClips
 import org.readium.r2.shared.publication.services.CacheService
@@ -552,19 +551,17 @@ public class Publication(
     public fun toJSON(): JSONObject = throw NotImplementedError()
 
     @Deprecated(
-        "Use `metadata.effectiveReadingProgression` instead",
-        ReplaceWith("metadata.effectiveReadingProgression"),
+        "You should resolve [ReadingProgression.AUTO] by yourself.",
         level = DeprecationLevel.ERROR
     )
-    public val contentLayout: ReadingProgression get() = metadata.effectiveReadingProgression
+    public val contentLayout: ReadingProgression get() = throw NotImplementedError()
 
     @Deprecated(
-        "Use `metadata.effectiveReadingProgression` instead",
-        ReplaceWith("metadata.effectiveReadingProgression"),
+        "You should resolve [ReadingProgression.AUTO] by yourself.",
         level = DeprecationLevel.ERROR
     )
     @Suppress("UNUSED_PARAMETER")
-    public fun contentLayoutForLanguage(language: String?): ReadingProgression = metadata.effectiveReadingProgression
+    public fun contentLayoutForLanguage(language: String?): ReadingProgression = throw NotImplementedError()
 
     @Deprecated(
         "Renamed to `OpenError`",
