@@ -196,7 +196,7 @@ internal class TtsPlayer<S : TtsEngine.Settings, P : TtsEngine.Preferences<P>,
         initialPreferences
 
     init {
-        submitPreferences(initialPreferences)
+        submitPreferencesForSure(initialPreferences)
     }
 
     fun play() {
@@ -461,6 +461,10 @@ internal class TtsPlayer<S : TtsEngine.Settings, P : TtsEngine.Preferences<P>,
             nextUtterance = contextNow.currentUtterance
         )
         utteranceMutable.value = utteranceWindow.currentUtterance.ttsPlayerUtterance()
+
+        if (playbackMutable.value.state == State.Ended) {
+            playbackMutable.value = playbackMutable.value.copy(state = State.Ready)
+        }
     }
 
     private suspend fun tryLoadNextContext() {
@@ -506,6 +510,7 @@ internal class TtsPlayer<S : TtsEngine.Settings, P : TtsEngine.Preferences<P>,
         playbackMutable.value = playbackMutable.value.copy(
             state = State.Ended
         )
+        playbackJob?.cancel()
     }
 
     private suspend fun playContinuous() {
@@ -560,6 +565,15 @@ internal class TtsPlayer<S : TtsEngine.Settings, P : TtsEngine.Preferences<P>,
     }
 
     override fun submitPreferences(preferences: P) {
+        if (preferences == lastPreferences) {
+            return
+        }
+
+        submitPreferencesForSure(preferences)
+        restartUtterance()
+    }
+
+    private fun submitPreferencesForSure(preferences: P) {
         lastPreferences = preferences
         engineFacade.submitPreferences(preferences)
         contentIterator.language = engineFacade.settings.value.language
