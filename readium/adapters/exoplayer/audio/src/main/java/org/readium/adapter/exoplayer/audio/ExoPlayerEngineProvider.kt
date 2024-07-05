@@ -28,15 +28,14 @@ import org.readium.r2.shared.util.Try
  * Provide [ExoPlayerDefaults] to customize the default values that will be used by
  * the navigator for some preferences.
  *
- * Pass an [ExoPlayerDataSourceProvider] providing a caching data source with an upstream
- * [PublicationExoPlayerDataSource] if you need caching.
+ * Pass an [ExoPlayerCacheProvider] to enable caching of remote resources.
  */
 @ExperimentalReadiumApi
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 public class ExoPlayerEngineProvider(
     private val application: Application,
     private val metadataProvider: MediaMetadataProvider = DefaultMediaMetadataProvider(),
-    private val dataSourceProvider: ExoPlayerDataSourceProvider = DefaultExoPlayerDataSourceProvider(),
+    private val cacheProvider: ExoPlayerCacheProvider? = null,
     private val defaults: ExoPlayerDefaults = ExoPlayerDefaults(),
     private val configuration: ExoPlayerEngine.Configuration = ExoPlayerEngine.Configuration()
 ) : AudioEngineProvider<ExoPlayerSettings, ExoPlayerPreferences, ExoPlayerPreferencesEditor> {
@@ -48,7 +47,9 @@ public class ExoPlayerEngineProvider(
     ): Try<ExoPlayerEngine, Nothing> {
         val metadataFactory = metadataProvider.createMetadataFactory(publication)
         val settingsResolver = ExoPlayerSettingsResolver(defaults)
-        val dataSourceFactory = dataSourceProvider.createDataSourceFactory(publication)
+        val dataSourceFactory = cacheProvider
+            ?.createCacheDataSourceFactory(publication)
+            ?: ExoPlayerDataSource.Factory(publication)
         val initialIndex = publication.readingOrder.indexOfFirstWithHref(initialLocator.href) ?: 0
         val initialPosition = initialLocator.locations.time ?: Duration.ZERO
         val playlist = ExoPlayerEngine.Playlist(
