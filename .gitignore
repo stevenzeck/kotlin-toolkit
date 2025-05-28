@@ -81,6 +81,12 @@ lint/reports/
 
 # Docs
 docs/readium
+docs/images
+docs/scripts
+docs/styles
+docs/ui-kit
+docs/index.html
+docs/navigation.html
 docs/index.md
 docs/package-list
 site/
