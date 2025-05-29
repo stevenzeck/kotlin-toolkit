@@ -4,18 +4,13 @@
  * available in the top-level LICENSE file of the project.
  */
 
-import org.jetbrains.dokka.gradle.DokkaTaskPartial
-
 plugins {
-    alias(libs.plugins.dokka)
+    `dokka-convention`
     alias(libs.plugins.ktlint)
     alias(libs.plugins.compose.compiler) apply false
 }
 
 subprojects {
-    if (name != "test-app") {
-        apply(plugin = "org.jetbrains.dokka")
-    }
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
 
     ktlint {
@@ -46,13 +41,7 @@ dependencies {
 }
 
 dokka {
-    dokkaSourceSets.configureEach {
-        reportUndocumented = false
-        skipEmptyPackages = false
-        skipDeprecated = true
-    }
-
     dokkaPublications.html {
-        outputDirectory.set(layout.buildDirectory.dir("docs"))
+        outputDirectory.set(layout.projectDirectory.dir("docsnew"))
     }
 }

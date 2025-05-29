@@ -6,6 +6,7 @@
 
 plugins {
     id("readium.library-conventions")
+    `dokka-convention`
 }
 
 android {

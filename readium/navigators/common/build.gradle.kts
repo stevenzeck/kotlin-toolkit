@@ -8,6 +8,7 @@ plugins {
     id("readium.library-conventions")
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.compose.compiler)
+    `dokka-convention`
 }
 
 android {

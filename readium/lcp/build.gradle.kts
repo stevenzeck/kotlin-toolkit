@@ -7,6 +7,7 @@
 plugins {
     id("readium.library-conventions")
     alias(libs.plugins.ksp)
+    `dokka-convention`
 }
 
 android {

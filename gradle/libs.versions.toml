@@ -101,6 +101,7 @@ androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "a
 assertj = { group = "org.assertj", name = "assertj-core", version.ref = "assertj" }
 
 desugar_jdk_libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar_jdk_libs" }
+dokka = { group = "org.jetbrains.dokka", name = "dokka-gradle-plugin", version.ref = "dokka" }
 google-material = { group = "com.google.android.material", name = "material", version.ref = "google-material" }
 
 joda-time = { group = "joda-time", name = "joda-time", version.ref = "joda-time" }
