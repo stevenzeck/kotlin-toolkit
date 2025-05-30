@@ -36,11 +36,14 @@ jobs:
       - name: Get current Readium version
         run: echo "READIUM_VERSION=`git describe --tag --match [0-9]* --abbrev=0`" >> $GITHUB_ENV
 
+      - name: Create directory in previousVersionDocs
+        run: mkdir -p previousVersionDocs/${{ env.READIUM_VERSION }}
+
+      - name: Create docs directory if it does not exist
+        run: mkdir -p docsnew
+
       - name: Run Dokka
         run: ./gradlew :dokkaGenerate
-
-      - name: Create directory in previousVersionDocs
-        run: mkdir previousVersionDocs/${{ env.READIUM_VERSION }}
 
       - name: Copy docs to previousVersionDocs
         run: cp -r docsnew/* previousVersionDocs/${{ env.READIUM_VERSION }}
