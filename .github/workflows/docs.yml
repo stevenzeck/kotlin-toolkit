@@ -47,11 +47,22 @@ jobs:
       - name: Create directory in previousDocVersions
         run: mkdir -p previousDocVersions/${{ env.READIUM_VERSION }}
 
+      - name: List contents of working directory (for debugging)
+        run: |
+          echo "Current directory listing:"
+          ls -la
+          if [ -d "previousDocVersions" ]; then
+            echo "'previousDocVersions' directory exists. Contents:"
+            ls -la previousDocVersions
+          else
+            echo "Critical: 'previousDocVersions' directory does NOT exist before running Dokka."
+          fi        
+
       - name: Run Dokka
         run: ./gradlew :dokkaGenerate
 
       - name: Copy docs to previousDocVersions
-        run: cp -r docsnew/* previousDocVersions/${{ env.READIUM_VERSION }}
+        run: cp -r docs/* previousDocVersions/${{ env.READIUM_VERSION }}
 
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v5

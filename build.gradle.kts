@@ -44,7 +44,7 @@ dependencies {
 
 dokka {
     dokkaPublications.html {
-        outputDirectory.set(layout.projectDirectory.dir("docsnew"))
+        outputDirectory.set(layout.projectDirectory.dir("docs"))
     }
     pluginsConfiguration {
         versioning{
