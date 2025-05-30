@@ -44,14 +44,14 @@ jobs:
       - name: Get current Readium version
         run: echo "READIUM_VERSION=`git describe --tag --match [0-9]* --abbrev=0`" >> $GITHUB_ENV
 
-      - name: Create directory in previousVersionDocs
-        run: mkdir -p previousVersionDocs/${{ env.READIUM_VERSION }}
+      - name: Create directory in previousDocVersions
+        run: mkdir -p previousDocVersions/${{ env.READIUM_VERSION }}
 
       - name: Run Dokka
         run: ./gradlew :dokkaGenerate
 
-      - name: Copy docs to previousVersionDocs
-        run: cp -r docsnew/* previousVersionDocs/${{ env.READIUM_VERSION }}
+      - name: Copy docs to previousDocVersions
+        run: cp -r docsnew/* previousDocVersions/${{ env.READIUM_VERSION }}
 
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
