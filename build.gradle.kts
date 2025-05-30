@@ -38,10 +38,19 @@ dependencies {
     dokka(project(":readium:adapters:pdfium:readium-adapter-pdfium-navigator"))
     dokka(project(":readium:adapters:pdfium:readium-adapter-pdfium-document"))
     dokka(project(":readium:adapters:pdfium:readium-adapter-pdfium-common"))
+
+    dokkaHtmlPlugin("org.jetbrains.dokka:versioning-plugin")
 }
 
 dokka {
     dokkaPublications.html {
         outputDirectory.set(layout.projectDirectory.dir("docsnew"))
+    }
+    pluginsConfiguration {
+        versioning{
+            version = property("pom.version") as String
+
+            olderVersionsDir = layout.projectDirectory.dir("previousDocVersions")
+        }
     }
 }

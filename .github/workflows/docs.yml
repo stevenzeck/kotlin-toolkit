@@ -2,9 +2,9 @@ name: Documentation
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches:
-  #     - main
+  push:
+    branches:
+      - main
 
 jobs:
   docs:
@@ -18,15 +18,15 @@ jobs:
       - name: Fetch tags
         run: git fetch --prune --unshallow
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.11.6
-
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install mkdocs mkdocs-material mike
+      #      - name: Set up Python
+      #        uses: actions/setup-python@v4
+      #        with:
+      #          python-version: 3.11.6
+      #
+      #      - name: Install Python dependencies
+      #        run: |
+      #          python -m pip install --upgrade pip
+      #          pip install mkdocs mkdocs-material mike
 
       - uses: actions/setup-java@v3
         with:
@@ -37,15 +37,21 @@ jobs:
         run: echo "READIUM_VERSION=`git describe --tag --match [0-9]* --abbrev=0`" >> $GITHUB_ENV
 
       - name: Run Dokka
-        run: ./gradlew :dokkaGfmMultiModule
+        run: ./gradlew :dokkaGenerate
 
-      - name: Copy README.md into docs to replace Dokka index.md
-        run: cp README.md index.md
+      - name: Create directory in previousVersionDocs
+        run: mkdir previousVersionDocs/${{ env.READIUM_VERSION }}
 
-      - name: Run MkDocs
-        run: |
-          git config --global user.name "${GITHUB_ACTOR}"
-          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
-          mike deploy ${{ env.READIUM_VERSION }}
-          mike set-default ${{ env.READIUM_VERSION }}
-          mike deploy --push --update-aliases ${{ env.READIUM_VERSION }} latest
+      - name: Copy docs to previousVersionDocs
+        run: cp -r docsnew/* previousVersionDocs/${{ env.READIUM_VERSION }}
+
+#      - name: Copy README.md into docs to replace Dokka index.md
+#        run: cp README.md index.md
+#
+#      - name: Run MkDocs
+#        run: |
+#          git config --global user.name "${GITHUB_ACTOR}"
+#          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+#          mike deploy ${{ env.READIUM_VERSION }}
+#          mike set-default ${{ env.READIUM_VERSION }}
+#          mike deploy --push --update-aliases ${{ env.READIUM_VERSION }} latest
