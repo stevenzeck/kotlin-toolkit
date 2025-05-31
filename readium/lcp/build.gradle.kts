@@ -44,3 +44,9 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
 }
+
+dokka {
+    dokkaSourceSets.configureEach {
+        includes.from("lcp.md")
+    }
+}
