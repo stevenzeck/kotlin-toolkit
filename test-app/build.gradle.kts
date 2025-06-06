@@ -108,6 +108,9 @@ dependencies {
 
     implementation(libs.bundles.media3)
 
+    implementation(libs.bundles.compose)
+    implementation(libs.bundles.coil)
+
     // Room database
     implementation(libs.bundles.room)
     ksp(libs.androidx.room.compiler)

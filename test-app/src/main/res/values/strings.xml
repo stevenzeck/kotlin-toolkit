@@ -82,7 +82,7 @@
     <string name="confirm_delete_catalog_text">Are you sure you want to delete this Catalog feed?</string>
 
     <string name="add_book">Add a Book</string>
-    <string name="add_catalog">Add an Catalog Feed</string>
+    <string name="add_catalog">Add a Catalog Feed</string>
     <string name="ok">OK</string>
     <string name="save">Save</string>
     <string name="enter_title">Enter the Title</string>

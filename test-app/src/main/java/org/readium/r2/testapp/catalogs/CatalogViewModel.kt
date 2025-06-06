@@ -9,7 +9,9 @@ package org.readium.r2.testapp.catalogs
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.readium.r2.opds.OPDS1Parser
 import org.readium.r2.opds.OPDS2Parser
@@ -19,17 +21,18 @@ import org.readium.r2.shared.util.AbsoluteUrl
 import org.readium.r2.shared.util.Try
 import org.readium.r2.shared.util.http.HttpRequest
 import org.readium.r2.testapp.data.model.Catalog
-import org.readium.r2.testapp.utils.EventChannel
 import timber.log.Timber
 
 class CatalogViewModel(application: Application) : AndroidViewModel(application) {
 
-    val channel = EventChannel(Channel<Event>(Channel.BUFFERED), viewModelScope)
+    private val _uiState = MutableStateFlow<CatalogUiState>(CatalogUiState.Loading)
+    val uiState: StateFlow<CatalogUiState> = _uiState.asStateFlow()
 
-    lateinit var publication: Publication
+//    lateinit var publication: Publication
     private val app = getApplication<org.readium.r2.testapp.Application>()
 
     fun parseCatalog(catalog: Catalog) = viewModelScope.launch {
+        _uiState.value = CatalogUiState.Loading
         var parseRequest: Try<ParseData, Exception>? = null
         catalog.href.let { href ->
             AbsoluteUrl(href)
@@ -42,23 +45,29 @@ class CatalogViewModel(application: Application) : AndroidViewModel(application)
                     }
                 }
         }
-        parseRequest?.onSuccess {
-            channel.send(Event.CatalogParseSuccess(it))
+        parseRequest?.onSuccess { parseData ->
+            _uiState.value = CatalogUiState.Success(parseData)
         }
         parseRequest?.onFailure {
             Timber.e(it)
-            channel.send(Event.CatalogParseFailed)
+            _uiState.value = CatalogUiState.Error("Failed to parse catalog")
         }
     }
 
     fun downloadPublication(publication: Publication) = viewModelScope.launch {
         app.bookshelf.importPublicationFromOpds(publication)
     }
+}
 
-    sealed class Event {
+sealed interface CatalogUiState {
 
-        object CatalogParseFailed : Event()
+    data object Loading : CatalogUiState
 
-        class CatalogParseSuccess(val result: ParseData) : Event()
-    }
+    data class Success(
+        val parseData: ParseData,
+    ) : CatalogUiState
+
+    data class Error(
+        val error: String,
+    ) : CatalogUiState
 }
