@@ -16,6 +16,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -28,26 +30,29 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import org.readium.r2.shared.publication.Publication
+import org.readium.r2.shared.publication.opds.images
 import org.readium.r2.testapp.MainViewModel
 import org.readium.r2.testapp.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PublicationScreen(
-    publication: Publication,
     mainViewModel: MainViewModel,
-    viewModel: CatalogViewModel = viewModel()
+    catalogViewModel: CatalogViewModel = viewModel()
 ) {
+
+    val publication by catalogViewModel.publication.collectAsState()
 
     LaunchedEffect(Unit) {
         mainViewModel.updateTopBar(title = "Publication")
     }
 
-
-    PublicationDetailContent(
-        publication = publication,
-        onDownloadClick = { viewModel.downloadPublication(publication) }
-    )
+    publication?.let { pub ->
+        PublicationDetailContent(
+            publication = pub,
+            onDownloadClick = { catalogViewModel.downloadPublication(pub) }
+        )
+    }
 
 }
 
@@ -64,9 +69,11 @@ private fun PublicationDetailContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        val imageUrl = publication.linkWithRel("http://opds-spec.org/image/thumbnail")?.href?.toString()
+            ?: publication.images.firstOrNull()?.href?.toString()
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
-                .data(publication.links.firstOrNull { it.rels.contains("cover") }?.href)
+                .data(imageUrl)
                 .crossfade(true)
                 .build(),
             contentDescription = "Publication cover",

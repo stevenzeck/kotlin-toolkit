@@ -28,7 +28,9 @@ class CatalogViewModel(application: Application) : AndroidViewModel(application)
     private val _uiState = MutableStateFlow<CatalogUiState>(CatalogUiState.Loading)
     val uiState: StateFlow<CatalogUiState> = _uiState.asStateFlow()
 
-//    lateinit var publication: Publication
+    private val _publication = MutableStateFlow<Publication?>(null)
+    val publication: StateFlow<Publication?> = _publication.asStateFlow()
+
     private val app = getApplication<org.readium.r2.testapp.Application>()
 
     fun parseCatalog(catalog: Catalog) = viewModelScope.launch {
@@ -52,6 +54,10 @@ class CatalogViewModel(application: Application) : AndroidViewModel(application)
             Timber.e(it)
             _uiState.value = CatalogUiState.Error("Failed to parse catalog")
         }
+    }
+
+    fun setPublication(publication: Publication) {
+        _publication.value = publication
     }
 
     fun downloadPublication(publication: Publication) = viewModelScope.launch {

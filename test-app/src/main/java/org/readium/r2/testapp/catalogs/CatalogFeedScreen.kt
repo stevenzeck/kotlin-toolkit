@@ -43,7 +43,7 @@ import org.readium.r2.testapp.data.model.Catalog
 
 @Composable
 fun CatalogFeedScreen(
-    viewModel: CatalogFeedListViewModel = viewModel(),
+    catalogViewModel: CatalogFeedListViewModel = viewModel(),
     mainViewModel: MainViewModel,
     navController: NavController
 ) {
@@ -53,7 +53,7 @@ fun CatalogFeedScreen(
         mainViewModel.updateTopBar(title = title)
     }
 
-    val catalogs by viewModel.catalogs.collectAsStateWithLifecycle(initialValue = emptyList())
+    val catalogs by catalogViewModel.catalogs.collectAsStateWithLifecycle(initialValue = emptyList())
     var showAddCatalogDialog by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -65,7 +65,7 @@ fun CatalogFeedScreen(
                 CatalogItem(
                     catalog = catalog,
                     onDelete = { catalogId ->
-                        viewModel.deleteCatalog(catalogId)
+                        catalogViewModel.deleteCatalog(catalogId)
                     },
                     onClick = {
                         navController.currentBackStackEntry?.savedStateHandle?.set(
@@ -97,7 +97,7 @@ fun CatalogFeedScreen(
         AddCatalogDialog(
             onDismiss = { showAddCatalogDialog = false },
             onConfirm = { title, url ->
-                viewModel.parseCatalog(url, title)
+                catalogViewModel.parseCatalog(url, title)
                 showAddCatalogDialog = false
             }
         )

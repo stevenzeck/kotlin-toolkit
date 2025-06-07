@@ -30,6 +30,7 @@ import org.readium.r2.testapp.about.AboutScreen
 import org.readium.r2.testapp.bookshelf.BookshelfScreen
 import org.readium.r2.testapp.catalogs.CatalogFeedScreen
 import org.readium.r2.testapp.catalogs.CatalogScreen
+import org.readium.r2.testapp.catalogs.CatalogViewModel
 import org.readium.r2.testapp.catalogs.PublicationScreen
 import org.readium.r2.testapp.data.model.Catalog
 
@@ -64,6 +65,8 @@ fun TestApp(mainViewModel: MainViewModel = viewModel()) {
     val currentRoute = navBackStackEntry?.destination?.route
 
     val topBarState by mainViewModel.topBarState.collectAsState()
+
+    val catalogViewModel: CatalogViewModel = viewModel()
 
     Scaffold(
         topBar = {
@@ -126,6 +129,7 @@ fun TestApp(mainViewModel: MainViewModel = viewModel()) {
                     CatalogScreen(
                         catalog = catalog,
                         mainViewModel = mainViewModel,
+                        catalogViewModel = catalogViewModel,
                         navController = navController,
                         onFacetClick = { /* TODO */ }
                     )
@@ -137,7 +141,7 @@ fun TestApp(mainViewModel: MainViewModel = viewModel()) {
                     ?.savedStateHandle?.get<Publication>("publication")
 
                 if (publication != null) {
-                    PublicationScreen(publication = publication, mainViewModel = mainViewModel)
+                    PublicationScreen(catalogViewModel = catalogViewModel, mainViewModel = mainViewModel)
                 }
             }
         }

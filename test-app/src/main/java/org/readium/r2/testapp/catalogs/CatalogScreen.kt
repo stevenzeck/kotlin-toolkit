@@ -61,14 +61,14 @@ import org.readium.r2.testapp.data.model.Catalog
 fun CatalogScreen(
     catalog: Catalog,
     mainViewModel: MainViewModel,
-    viewModel: CatalogViewModel = viewModel(),
+    catalogViewModel: CatalogViewModel = viewModel(),
     navController: NavController,
     onFacetClick: (facet: Facet) -> Unit
 ) {
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val state by catalogViewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(catalog) {
-        viewModel.parseCatalog(catalog)
+        catalogViewModel.parseCatalog(catalog)
     }
 
     LaunchedEffect(state) {
@@ -89,7 +89,7 @@ fun CatalogScreen(
     }
 
     val navigateToPublication = { publication: Publication ->
-        navController.currentBackStackEntry?.savedStateHandle?.set("publication", publication)
+        catalogViewModel.setPublication(publication)
         navController.navigate("publication")
     }
 
