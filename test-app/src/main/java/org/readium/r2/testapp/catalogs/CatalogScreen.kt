@@ -53,6 +53,7 @@ import org.readium.r2.shared.opds.Facet
 import org.readium.r2.shared.opds.Group
 import org.readium.r2.shared.publication.Link
 import org.readium.r2.shared.publication.Publication
+import org.readium.r2.shared.publication.opds.images
 import org.readium.r2.testapp.Screen
 import org.readium.r2.testapp.data.model.Catalog
 
@@ -68,17 +69,6 @@ fun CatalogScreen(
 
     LaunchedEffect(catalog) {
          viewModel.parseCatalog(catalog)
-    }
-
-    val navigateToLink = { link: Link ->
-        val newCatalog = Catalog(
-            href = link.href.toString(),
-            title = link.title!!,
-            type = catalog.type,
-            id = null
-        )
-        navController.currentBackStackEntry?.savedStateHandle?.set("catalog", newCatalog)
-        navController.navigate(Screen.CatalogDetail.route)
     }
 
     val navigateToPublication = { publication: Publication ->
@@ -121,7 +111,16 @@ fun CatalogScreen(
                         item {
                             NavigationSection(
                                 links = feed.navigation,
-                                onNavigationLinkClick = navigateToLink
+                                onNavigationLinkClick = { link ->
+                                    val newCatalog = Catalog(
+                                        href = link.href.toString(),
+                                        title = link.title!!,
+                                        type = catalog.type,
+                                        id = null
+                                    )
+                                    navController.currentBackStackEntry?.savedStateHandle?.set("catalog", newCatalog)
+                                    navController.navigate(Screen.CatalogDetail.route)
+                                }
                             )
                         }
                     }
@@ -140,8 +139,16 @@ fun CatalogScreen(
                             group = group,
                             onPublicationClick = navigateToPublication,
                             onMoreClick = {
-                                group.links.firstOrNull()
-                                    ?.let { navigateToLink(it) }
+                                group.links.firstOrNull()?.let { link ->
+                                    val newCatalog = Catalog(
+                                        href = link.href.toString(),
+                                        title = group.title,
+                                        type = catalog.type,
+                                        id = null
+                                    )
+                                    navController.currentBackStackEntry?.savedStateHandle?.set("catalog", newCatalog)
+                                    navController.navigate(Screen.CatalogDetail.route)
+                                }
                             }
                         )
                     }
@@ -252,6 +259,9 @@ private fun GroupRow(
 
 @Composable
 private fun PublicationItem(publication: Publication, onClick: () -> Unit) {
+
+    val imageUrl = publication.linkWithRel("http://opds-spec.org/image/thumbnail")?.href?.toString()
+        ?: publication.images.firstOrNull()?.href?.toString()
     Card(
         onClick = onClick,
         modifier = Modifier.width(120.dp)
@@ -259,7 +269,7 @@ private fun PublicationItem(publication: Publication, onClick: () -> Unit) {
         Column {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
-                    .data(publication.links.firstOrNull { it.rels.contains("http://opds-spec.org/image/thumbnail") }?.href)
+                    .data(imageUrl)
                     .crossfade(true)
                     .build(),
                 contentDescription = "Publication cover",
