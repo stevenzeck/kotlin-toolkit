@@ -84,7 +84,7 @@ fun CatalogFeedScreen(
         AddCatalogDialog(
             onDismiss = { showAddCatalogDialog = false },
             onConfirm = { title, url ->
-                viewModel.parseCatalog(title, url)
+                viewModel.parseCatalog(url, title)
                 showAddCatalogDialog = false
             }
         )

@@ -87,7 +87,7 @@ fun TestApp() {
     ) { innerPadding ->
         NavHost(
             navController,
-            startDestination = Screen.TopLevel.Catalogs.route,
+            startDestination = Screen.TopLevel.Bookshelf.route,
             Modifier.padding(innerPadding)
         ) {
             composable(Screen.TopLevel.Bookshelf.route) { BookshelfScreen() }
@@ -114,7 +114,9 @@ fun TestApp() {
                 val publication = navController.previousBackStackEntry
                     ?.savedStateHandle?.get<Publication>("publication")
 
-                PublicationScreen(publication = publication)
+                if (publication != null) {
+                    PublicationScreen(publication = publication)
+                }
             }
         }
     }
