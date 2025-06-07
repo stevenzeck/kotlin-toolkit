@@ -1,24 +1,42 @@
 package org.readium.r2.testapp.about
 
+import android.app.Application
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.readium.r2.testapp.MainViewModel
 import org.readium.r2.testapp.R
 import org.readium.r2.testapp.utils.compose.AppTheme
 
 @Composable
-fun AboutScreen() {
+fun AboutScreen(mainViewModel: MainViewModel) {
+
+    val title = stringResource(R.string.title_about)
+
+    LaunchedEffect(Unit) {
+        mainViewModel.updateTopBar(title = title)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -118,7 +136,8 @@ private fun InfoText(text: String, contentDescription: String? = null) {
 @Preview(showBackground = true)
 @Composable
 private fun AboutScreenPreview() {
+    val viewModel = MainViewModel(LocalContext.current.applicationContext as Application)
     AppTheme {
-        AboutScreen()
+        AboutScreen(mainViewModel = viewModel)
     }
 }

@@ -28,9 +28,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,6 +52,7 @@ import org.readium.r2.shared.opds.Group
 import org.readium.r2.shared.publication.Link
 import org.readium.r2.shared.publication.Publication
 import org.readium.r2.shared.publication.opds.images
+import org.readium.r2.testapp.MainViewModel
 import org.readium.r2.testapp.Screen
 import org.readium.r2.testapp.data.model.Catalog
 
@@ -61,14 +60,32 @@ import org.readium.r2.testapp.data.model.Catalog
 @Composable
 fun CatalogScreen(
     catalog: Catalog,
-    navController: NavController,
+    mainViewModel: MainViewModel,
     viewModel: CatalogViewModel = viewModel(),
-    onFacetClick: (facet: Facet) -> Unit,
+    navController: NavController,
+    onFacetClick: (facet: Facet) -> Unit
 ) {
-     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(catalog) {
-         viewModel.parseCatalog(catalog)
+        viewModel.parseCatalog(catalog)
+    }
+
+    LaunchedEffect(state) {
+        val feed = (state as? CatalogUiState.Success)?.parseData?.feed
+        mainViewModel.updateTopBar(
+            title = catalog.title,
+            actions = {
+                if (!feed?.facets.isNullOrEmpty()) {
+                    FacetMenu(
+                        facets = feed.facets,
+                        onFacetClick = { link ->
+
+                        }
+                    )
+                }
+            }
+        )
     }
 
     val navigateToPublication = { publication: Publication ->
@@ -76,88 +93,79 @@ fun CatalogScreen(
         navController.navigate("publication")
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(catalog.title) },
-                actions = {
-                    if (state is CatalogUiState.Success && (state as CatalogUiState.Success).parseData.feed?.facets?.isNotEmpty() == true) {
-                        FacetMenu(facets = (state as CatalogUiState.Success).parseData.feed!!.facets, onFacetClick = onFacetClick)
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        when (val currentState = state) {
-            is CatalogUiState.Loading ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+    when (val currentState = state) {
+        is CatalogUiState.Loading ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
 
-            is CatalogUiState.Success -> {
-                val feed = currentState.parseData.feed
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentPadding = PaddingValues(vertical = 16.dp)
-                ) {
-                    if (feed?.navigation?.isNotEmpty() == true) {
-                        item {
-                            NavigationSection(
-                                links = feed.navigation,
-                                onNavigationLinkClick = { link ->
-                                    val newCatalog = Catalog(
-                                        href = link.href.toString(),
-                                        title = link.title!!,
-                                        type = catalog.type,
-                                        id = null
-                                    )
-                                    navController.currentBackStackEntry?.savedStateHandle?.set("catalog", newCatalog)
-                                    navController.navigate(Screen.CatalogDetail.route)
-                                }
-                            )
-                        }
-                    }
-
-                    if (feed?.publications?.isNotEmpty() == true) {
-                        item {
-                            PublicationGrid(
-                                publications = feed.publications,
-                                onPublicationClick = navigateToPublication
-                            )
-                        }
-                    }
-
-                    items(feed?.groups ?: emptyList()) { group ->
-                        GroupRow(
-                            group = group,
-                            onPublicationClick = navigateToPublication,
-                            onMoreClick = {
-                                group.links.firstOrNull()?.let { link ->
-                                    val newCatalog = Catalog(
-                                        href = link.href.toString(),
-                                        title = group.title,
-                                        type = catalog.type,
-                                        id = null
-                                    )
-                                    navController.currentBackStackEntry?.savedStateHandle?.set("catalog", newCatalog)
-                                    navController.navigate(Screen.CatalogDetail.route)
-                                }
+        is CatalogUiState.Success -> {
+            val feed = currentState.parseData.feed
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize(),
+                contentPadding = PaddingValues(vertical = 16.dp)
+            ) {
+                if (feed?.navigation?.isNotEmpty() == true) {
+                    item {
+                        NavigationSection(
+                            links = feed.navigation,
+                            onNavigationLinkClick = { link ->
+                                val newCatalog = Catalog(
+                                    href = link.href.toString(),
+                                    title = link.title!!,
+                                    type = catalog.type,
+                                    id = null
+                                )
+                                navController.currentBackStackEntry?.savedStateHandle?.set(
+                                    "catalog",
+                                    newCatalog
+                                )
+                                navController.navigate(Screen.CatalogDetail.route)
                             }
                         )
                     }
                 }
-            }
 
-            is CatalogUiState.Error -> {
+                if (feed?.publications?.isNotEmpty() == true) {
+                    item {
+                        PublicationGrid(
+                            publications = feed.publications,
+                            onPublicationClick = navigateToPublication
+                        )
+                    }
+                }
 
+                items(feed?.groups ?: emptyList()) { group ->
+                    GroupRow(
+                        group = group,
+                        onPublicationClick = navigateToPublication,
+                        onMoreClick = {
+                            group.links.firstOrNull()?.let { link ->
+                                val newCatalog = Catalog(
+                                    href = link.href.toString(),
+                                    title = group.title,
+                                    type = catalog.type,
+                                    id = null
+                                )
+                                navController.currentBackStackEntry?.savedStateHandle?.set(
+                                    "catalog",
+                                    newCatalog
+                                )
+                                navController.navigate(Screen.CatalogDetail.route)
+                            }
+                        }
+                    )
+                }
             }
+        }
+
+        is CatalogUiState.Error -> {
+
         }
     }
 }

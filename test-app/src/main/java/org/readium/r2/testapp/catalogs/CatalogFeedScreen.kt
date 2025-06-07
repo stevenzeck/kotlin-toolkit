@@ -2,6 +2,7 @@ package org.readium.r2.testapp.catalogs
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,11 +21,11 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,32 +37,28 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import org.readium.r2.testapp.MainViewModel
 import org.readium.r2.testapp.R
 import org.readium.r2.testapp.data.model.Catalog
 
 @Composable
 fun CatalogFeedScreen(
     viewModel: CatalogFeedListViewModel = viewModel(),
+    mainViewModel: MainViewModel,
     navController: NavController
 ) {
+    val title = stringResource(R.string.title_catalogs)
+
+    LaunchedEffect(Unit) {
+        mainViewModel.updateTopBar(title = title)
+    }
+
     val catalogs by viewModel.catalogs.collectAsStateWithLifecycle(initialValue = emptyList())
     var showAddCatalogDialog by remember { mutableStateOf(false) }
 
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showAddCatalogDialog = true }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = stringResource(R.string.add_catalog)
-                )
-            }
-        }
-    ) { padding ->
+    Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier
-                .padding(padding)
                 .fillMaxSize()
         ) {
             items(catalogs) { catalog ->
@@ -71,13 +68,29 @@ fun CatalogFeedScreen(
                         viewModel.deleteCatalog(catalogId)
                     },
                     onClick = {
-                        navController.currentBackStackEntry?.savedStateHandle?.set("catalog", catalog)
+                        navController.currentBackStackEntry?.savedStateHandle?.set(
+                            "catalog",
+                            catalog
+                        )
                         navController.navigate("catalog_detail")
                     }
                 )
                 HorizontalDivider()
             }
         }
+
+        FloatingActionButton(
+            onClick = { showAddCatalogDialog = true },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = stringResource(R.string.add_catalog)
+            )
+        }
+
     }
 
     if (showAddCatalogDialog) {
