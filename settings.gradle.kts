@@ -34,6 +34,14 @@ include(":readium:adapters:pspdfkit:navigator")
 project(":readium:adapters:pspdfkit:navigator")
     .name = "readium-adapter-pspdfkit-navigator"
 
+include(":readium:adapters:jetpackpdf:document")
+project(":readium:adapters:jetpackpdf:document")
+    .name = "readium-adapter-jetpackpdf-document"
+
+include(":readium:adapters:jetpackpdf:navigator")
+project(":readium:adapters:jetpackpdf:navigator")
+    .name = "readium-adapter-jetpackpdf-navigator"
+
 include(":readium:lcp")
 project(":readium:lcp")
     .name = "readium-lcp"

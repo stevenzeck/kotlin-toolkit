@@ -1,0 +1,1 @@
+# Readium Adapter for [Jetpack PDF](https://developer.android.com/reference/kotlin/androidx/pdf/package-summary?hl=en)
