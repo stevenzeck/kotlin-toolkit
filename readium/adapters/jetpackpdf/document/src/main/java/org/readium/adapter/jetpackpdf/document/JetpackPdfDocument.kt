@@ -10,10 +10,9 @@ package org.readium.adapter.jetpackpdf.document
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.util.Size
-import androidx.pdf.PdfDocument as _JetpackPdfDocument
-import androidx.pdf.PdfLoader
-import androidx.pdf.PdfPasswordException
+import android.graphics.pdf.PdfRenderer
+import android.os.ParcelFileDescriptor
+import java.io.File
 import kotlin.reflect.KClass
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -29,31 +28,54 @@ import org.readium.r2.shared.util.toUri
 import timber.log.Timber
 
 /**
- * Jetpack PDF implementation of [PdfDocument].
+ * Implementation of [PdfDocument] using the standard Android [PdfRenderer].
+ * Used for metadata parsing and cover generation.
  */
 public class JetpackPdfDocument(
-    public val document: _JetpackPdfDocument,
+    public val renderer: PdfRenderer,
+    public val fileDescriptor: ParcelFileDescriptor,
     override val identifier: String?,
 ) : PdfDocument {
 
     override val pageCount: Int
-        get() = document.pageCount
+        get() = renderer.pageCount
 
+    // PdfRenderer does not extract metadata like Title/Author.
+    // We leave these null as per the interface default.
     override val title: String? = null
     override val author: String? = null
     override val subject: String? = null
     override val keywords: List<String> = emptyList()
-    override val outline: List<PdfDocument.OutlineNode> by lazy {
-        emptyList()
-    }
+    override val outline: List<PdfDocument.OutlineNode> = emptyList()
 
     override suspend fun cover(context: Context): Bitmap? = withContext(Dispatchers.IO) {
         try {
-            val pageInfo = document.getPageInfo(0)
-            document.getPageBitmapSource(0).use { source ->
-                source.getBitmap(
-                    scaledPageSizePx = Size(pageInfo.width, pageInfo.height), tileRegion = null
-                )
+            if (pageCount > 0) {
+                // PdfRenderer is not thread-safe, so we synchronize access
+                synchronized(renderer) {
+                    renderer.openPage(0).use { page ->
+                        val width = page.width
+                        val height = page.height
+                        // Avoid creating massive bitmaps if the PDF page is huge
+                        val scale = if (width > 1000) 1000f / width else 1f
+
+                        val bitmap = Bitmap.createBitmap(
+                            (width * scale).toInt(),
+                            (height * scale).toInt(),
+                            Bitmap.Config.ARGB_8888
+                        )
+
+                        page.render(
+                            bitmap,
+                            null,
+                            null,
+                            PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY
+                        )
+                        bitmap
+                    }
+                }
+            } else {
+                null
             }
         } catch (e: Exception) {
             Timber.e(e, "Failed to render PDF cover")
@@ -65,12 +87,17 @@ public class JetpackPdfDocument(
     }
 
     override fun close() {
-        document.close()
+        try {
+            renderer.close()
+            fileDescriptor.close()
+        } catch (e: Exception) {
+            Timber.w(e, "Error closing JetpackPdfDocument")
+        }
     }
 }
 
 public class JetpackPdfDocumentFactory(
-    private val pdfLoader: PdfLoader
+    private val context: Context
 ) : PdfDocumentFactory<JetpackPdfDocument> {
 
     override val documentType: KClass<JetpackPdfDocument> = JetpackPdfDocument::class
@@ -79,16 +106,34 @@ public class JetpackPdfDocumentFactory(
         val uri = resource.sourceUrl?.toUri()
             ?: return Try.failure(ReadError.Decoding("Jetpack PDF requires a file Uri"))
 
-        return try {
-            val jetpackDoc = pdfLoader.openDocument(uri, password)
+        return withContext(Dispatchers.IO) {
+            try {
+                val pfd = try {
+                    context.contentResolver.openFileDescriptor(uri, "r")
+                } catch (e: Exception) {
+                    if (uri.scheme == "file" && uri.path != null) {
+                        ParcelFileDescriptor.open(
+                            File(uri.path!!),
+                            ParcelFileDescriptor.MODE_READ_ONLY
+                        )
+                    } else {
+                        throw e
+                    }
+                }
 
-            val identifier = uri.toString().toByteArray().md5()
+                if (pfd == null) {
+                    return@withContext Try.failure(ReadError.Decoding("Could not open file descriptor for $uri"))
+                }
 
-            Try.success(JetpackPdfDocument(jetpackDoc, identifier))
-        } catch (e: PdfPasswordException) {
-            Try.failure(ReadError.Decoding(e))
-        } catch (e: Exception) {
-            Try.failure(ReadError.Decoding(e))
+                val renderer = PdfRenderer(pfd)
+                val identifier = uri.toString().toByteArray().md5()
+
+                Try.success(JetpackPdfDocument(renderer, pfd, identifier))
+            } catch (e: SecurityException) {
+                Try.failure(ReadError.Decoding(e))
+            } catch (e: Exception) {
+                Try.failure(ReadError.Decoding(e))
+            }
         }
     }
 }
