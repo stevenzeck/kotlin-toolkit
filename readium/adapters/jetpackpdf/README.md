@@ -3,20 +3,22 @@
 [Jetpack PDF](https://developer.android.com/jetpack/androidx/releases/pdf) is Google's official
 Android library for viewing PDF documents. This adapter provides an implementation of Readium's
 `PdfDocument` for parsing a PDF publication, and of `PdfDocumentFragment` to render a PDF with
-`PdfNavigatorFragment` using the system's native PDF viewer capabilities.
+`PdfNavigatorFragment`.
 
-Jetpack PDF is a modern, performant, and open-source alternative to PdfiumAndroid, but it has
-specific requirements:
+This adapter utilizes `androidx.pdf.view.PdfView` for rendering and the native `PdfRenderer` for
+metadata and covers.
 
-* **Minimum API:** Requires Android 12 (API 31) with SDK Extensions or Android 13 (API 33)+.
-* **Alpha Status:** The library is currently in Alpha. APIs and behavior are subject to change.
-* **Local Files Only:** The underlying `PdfViewerFragment` currently requires a local `file://` or
-  `content://` URI. Remote HTTP streaming is not yet supported by the viewer. If you need to display
-  a PDF from a URL, you must download it to a local file first.
+* **Minimum API:** Requires **Android 8.0 (API 26)** or higher.
+* **Alpha Status:** The underlying Jetpack PDF library is currently in Alpha. APIs and behavior are
+  subject to change.
+* **Universal Access:** Unlike the platform PDF viewer, this adapter uses a `ProxyFileDescriptor`.
+  This allows it to read from any Readium `Resource`, enabling support for encrypted assets (DRM),
+  assets inside generic Zip archives, and cached remote content, without requiring a strictly local
+  file URI.
 
 ## Setup
 
-Follow the same setup instructions as the core Readium toolkit, then add this new dependency in your
+Follow the same setup instructions as the core Readium toolkit, then add this dependency in your
 app's `build.gradle.kts`.
 
 ```kotlin
@@ -54,7 +56,7 @@ val streamer = Streamer(
     pdfFactory = JetpackPdfDocumentFactory(context)
 )
 
-val publication = streamer.open(FileAsset(pdfFile)).getOrThrow()
+val publication = streamer.open(asset).getOrThrow()
 ```
 
 ## Render a PDF with Readium's PdfNavigatorFragment
@@ -62,21 +64,15 @@ val publication = streamer.open(FileAsset(pdfFile)).getOrThrow()
 To render the PDF using Readium's `PdfNavigatorFragment`, instantiate `JetpackPdfEngineProvider` and
 use the `PdfNavigatorFactory`.
 
-**Important**: This adapter relies on Android SDK Extensions that may not be present on all
-devices (
-even those running Android 12+). You must check for support before instantiating the engine
-provider using the provided `isSupported()` function.`
-
-**Note**: Because `androidx.pdf` strictly requires absolute URIs, you may need to provide the
-absolute
-file path to the engine provider if your Publication uses relative paths internally.
+**Note**: This adapter requires Android 8.0+ (API 26). You must check for support before
+instantiating the engine provider using the provided `isSupported()` function.
 
 ```kotlin
 if (JetpackPdfEngineProvider.isSupported()) {
 
     val pdfEngine = JetpackPdfEngineProvider(
-        // 2. Required: Provide the explicit absolute URI to the file on disk
-        dataSource = Uri.fromFile(File(bookPath))
+        // Optional defaults
+        defaults = JetpackPdfDefaults()
     )
 
     val navigatorFactory = PdfNavigatorFactory(
@@ -92,13 +88,13 @@ if (JetpackPdfEngineProvider.isSupported()) {
 
 The following table summarizes the support for Readium PDF APIs with this adapter.
 
-| Feature              | Supported | Notes                                                                                                                |
-|:---------------------|:---------:|:---------------------------------------------------------------------------------------------------------------------|
-| **Rendering**        |     ✅     | Uses the native `PdfViewerFragment`.                                                                                 |
-| **Styling**          |     ⏳     | In progress for what is supported by `PdfStylingOptions` (mapped to Readium Settings).                               |
-| **Cover Generation** |     ✅     | Generates bitmaps using `PdfRenderer`.                                                                               |
-| **Metadata**         |     ❌     | `PdfRenderer` cannot extract metadata.                                                                               |
-| **Search**           |    ❌️     | No API to control search programmatically.                                                                           |
-| **Highlights**       |     ❌     | The `Highlight` and `SelectionMenuItemPreparer` classes exist, but the Fragment lacks the API to save/load them yet. |
-| **Selection**        |    ❌️     | Text selection works natively, but we cannot retrieve the selected text/coordinates yet.                             |
-| **Remote Streaming** |     ❌     | Requires downloading to a local file first.                                                                          |
+| Feature              | Supported | Notes                                                                                                  |
+|:---------------------|:---------:|:-------------------------------------------------------------------------------------------------------|
+| **Rendering**        |     ✅     | Uses the Jetpack `PdfView`.                                                                            |
+| **Styling**          |     ⏳     | In progress for what is supported by `PdfStylingOptions`.                                              |
+| **Cover Generation** |     ✅     | Generates bitmaps using the native `PdfRenderer`.                                                      |
+| **Metadata**         |     ❌     | `PdfRenderer` cannot extract metadata (Title/Author).                                                  |
+| **Search**           |     ❌     | No API to control search programmatically yet.                                                         |
+| **Highlights**       |     ❌     | Not yet supported by the adapter.                                                                      |
+| **Selection**        |     ❌     | Text selection works natively within the view, but programmatic retrieval is not supported.            |
+| **Streaming/DRM**    |     ✅     | Uses `ProxyFileDescriptor` to stream content from any Readium `Resource` (including encrypted/remote). |
