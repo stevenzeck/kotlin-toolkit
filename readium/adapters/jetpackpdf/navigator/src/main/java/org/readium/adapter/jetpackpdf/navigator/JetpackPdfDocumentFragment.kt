@@ -8,31 +8,49 @@
 
 package org.readium.adapter.jetpackpdf.navigator
 
+import android.content.Context
 import android.graphics.PointF
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.HandlerThread
+import android.os.ParcelFileDescriptor
+import android.os.ProxyFileDescriptorCallback
+import android.os.storage.StorageManager
+import android.system.ErrnoException
+import android.system.OsConstants
 import android.view.GestureDetector
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import androidx.annotation.RequiresExtension
-import androidx.fragment.app.FragmentContainerView
-import androidx.fragment.app.commitNow
+import androidx.annotation.RequiresApi
+import androidx.lifecycle.lifecycleScope
+import androidx.pdf.SandboxedPdfLoader
+import androidx.pdf.view.PdfView
+import java.io.IOException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import org.readium.r2.navigator.pdf.PdfDocumentFragment
 import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.InternalReadiumApi
+import org.readium.r2.shared.publication.Publication
 import org.readium.r2.shared.util.Url
 import org.readium.r2.shared.util.data.ReadError
+import org.readium.r2.shared.util.file.FileSystemError
+import org.readium.r2.shared.util.getOrElse
 import org.readium.r2.shared.util.toUri
 
-@RequiresExtension(extension = Build.VERSION_CODES.S, version = 13)
+@RequiresApi(Build.VERSION_CODES.O)
 @ExperimentalReadiumApi
 public class JetpackPdfDocumentFragment internal constructor(
+    private val publication: Publication,
     private val href: Url,
     initialPageIndex: Int,
     initialSettings: JetpackPdfSettings,
@@ -44,17 +62,15 @@ public class JetpackPdfDocumentFragment internal constructor(
         fun onTap(point: PointF): Boolean
     }
 
-    private companion object {
-        private const val VIEWER_TAG = "androidx.pdf.viewer.fragment.PdfViewerFragment"
-    }
-
     private val _pageIndex = MutableStateFlow(initialPageIndex)
     override val pageIndex: StateFlow<Int> = _pageIndex.asStateFlow()
 
     private var settings: JetpackPdfSettings = initialSettings
 
-    // Reference to the internal Jetpack fragment
-    private var jetpackViewer: androidx.pdf.viewer.fragment.PdfViewerFragment? = null
+    private var pdfView: PdfView? = null
+    private var pdfDocument: androidx.pdf.PdfDocument? = null
+    private var fileDescriptor: ParcelFileDescriptor? = null
+    private var handlerThread: HandlerThread? = null
 
     private lateinit var gestureDetector: GestureDetector
 
@@ -63,8 +79,11 @@ public class JetpackPdfDocumentFragment internal constructor(
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+        val context = inflater.context
+
+        // Setup Gesture Detector for Taps
         gestureDetector = GestureDetector(
-            inflater.context,
+            context,
             object : GestureDetector.SimpleOnGestureListener() {
                 override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
                     return listener?.onTap(PointF(e.x, e.y)) ?: false
@@ -72,7 +91,8 @@ public class JetpackPdfDocumentFragment internal constructor(
             }
         )
 
-        val root = object : FrameLayout(inflater.context) {
+        // Create Root Layout (FrameLayout)
+        val root = object : FrameLayout(context) {
             override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
                 if (ev != null) {
                     gestureDetector.onTouchEvent(ev)
@@ -86,68 +106,153 @@ public class JetpackPdfDocumentFragment internal constructor(
             )
         }
 
-        val fragmentContainer = FragmentContainerView(inflater.context).apply {
+        // Create PdfView
+        pdfView = PdfView(context).apply {
             id = View.generateViewId()
-            layoutParams = ViewGroup.LayoutParams(
+            layoutParams = FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
+            // Listen for page changes to update pageIndex
+            addOnViewportChangedListener(object : PdfView.OnViewportChangedListener {
+                override fun onViewportChanged(
+                    firstVisiblePage: Int,
+                    visiblePagesCount: Int,
+                    pageLocations: android.util.SparseArray<android.graphics.RectF>,
+                    zoomLevel: Float
+                ) {
+                    // Update the state flow with the first visible page
+                    _pageIndex.value = firstVisiblePage
+                }
+            })
         }
-        root.addView(fragmentContainer)
+        root.addView(pdfView)
 
         return root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        loadDocument()
+    }
 
-        // FIX: Always reset (recreate) the internal fragment on view creation.
-        // PdfViewerFragment fails to restore its internal rendering
-        // state correctly on rotation (white screen).
-        reset()
+    private fun loadDocument() {
+        val context = requireContext()
+        val storageManager = context.getSystemService(Context.STORAGE_SERVICE) as StorageManager
+
+        // Create a background handler for the ProxyFileDescriptor
+        handlerThread = HandlerThread("JetpackPdfProxy").apply { start() }
+        val handler = Handler(handlerThread!!.looper)
+
+        val resource = publication.get(href)
+        if (resource == null) {
+            listener?.onResourceLoadFailed(
+                href,
+                ReadError.Access(FileSystemError.FileNotFound(null))
+            )
+            return
+        }
+
+        val callback = object : ProxyFileDescriptorCallback() {
+            override fun onGetSize(): Long {
+                return runBlocking {
+                    resource.length().getOrElse {
+                        throw ErrnoException("Failed to get size", OsConstants.EIO)
+                    }
+                }
+            }
+
+            override fun onRead(offset: Long, size: Int, data: ByteArray): Int {
+                return runBlocking {
+                    // Clamp size to remaining
+                    val length = resource.length().getOrElse { return@runBlocking -1 }
+                    if (offset >= length) return@runBlocking 0
+
+                    val readSize = size.coerceAtMost((length - offset).toInt())
+                    val range = offset until (offset + readSize)
+
+                    resource.read(range).map { bytes ->
+                        bytes.copyInto(data)
+                        bytes.size
+                    }.getOrElse {
+                        throw ErrnoException("Failed to read", OsConstants.EIO)
+                    }
+                }
+            }
+
+            override fun onRelease() {
+                resource.close()
+            }
+        }
+
+        // Open PFD
+        try {
+            fileDescriptor = storageManager.openProxyFileDescriptor(
+                ParcelFileDescriptor.MODE_READ_ONLY,
+                callback,
+                handler
+            )
+        } catch (e: Exception) {
+            listener?.onResourceLoadFailed(href, ReadError.Access(FileSystemError.IO(e)))
+            resource.close()
+            return
+        }
+
+        val fd = fileDescriptor ?: return
+        val uri = href.toUri()
+
+        // Load Document via SandboxedPdfLoader
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val loader = SandboxedPdfLoader(context)
+                val document = loader.openDocument(uri, fd, null)
+
+                withContext(Dispatchers.Main) {
+                    this@JetpackPdfDocumentFragment.pdfDocument = document
+                    pdfView?.pdfDocument = document
+                    // Restore page index if needed
+                    pdfView?.scrollToPage(_pageIndex.value)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    listener?.onResourceLoadFailed(href, ReadError.Decoding(e))
+                }
+            }
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+
+        try {
+            pdfDocument?.close()
+        } catch (e: Exception) {
+            // Ignore
+        }
+        pdfDocument = null
+
+        try {
+            fileDescriptor?.close()
+        } catch (e: IOException) {
+            // Ignore
+        }
+        fileDescriptor = null
+
+        handlerThread?.quitSafely()
+        handlerThread = null
+
+        pdfView = null
     }
 
     override fun goToPageIndex(index: Int, animated: Boolean): Boolean {
         if (_pageIndex.value == index) return false
-
         _pageIndex.value = index
-
-        // LIMITATION: androidx.pdf.viewer.fragment.PdfViewerFragment (as of Alpha)
-        // does not expose a public API to scroll to a specific page programmatically.
-        reset()
-
+        pdfView?.scrollToPage(index)
         return true
     }
 
     override fun applySettings(settings: JetpackPdfSettings) {
         if (this.settings == settings) return
         this.settings = settings
-        reset()
-    }
-
-    private fun reset() {
-        val containerId = (view as? ViewGroup)?.getChildAt(0)?.id ?: return
-        val uri = href.toUri()
-
-        // Note: As of androidx.pdf alpha, there is no explicit callback for load failures
-        // exposed on the Fragment API. We cannot easily invoke listener.onResourceLoadFailed here yet.
-
-        val fragment = androidx.pdf.viewer.fragment.PdfViewerFragment().apply {
-
-            arguments = Bundle().apply {
-                putParcelable("documentUri", href.toUri())
-                putInt("page", _pageIndex.value)
-            }
-        }
-
-        jetpackViewer = fragment
-
-        childFragmentManager.commitNow {
-            replace(containerId, fragment, VIEWER_TAG)
-        }
-
-        if (fragment.documentUri == null) {
-            fragment.documentUri = uri
-        }
     }
 }

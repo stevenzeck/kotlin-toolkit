@@ -9,11 +9,9 @@
 package org.readium.adapter.jetpackpdf.navigator
 
 import android.graphics.PointF
-import android.net.Uri
 import android.os.Build
-import android.os.ext.SdkExtensions
 import androidx.annotation.ChecksSdkIntAtLeast
-import androidx.annotation.RequiresExtension
+import androidx.annotation.RequiresApi
 import org.readium.r2.navigator.OverflowableNavigator
 import org.readium.r2.navigator.SimpleOverflow
 import org.readium.r2.navigator.input.TapEvent
@@ -30,38 +28,31 @@ import org.readium.r2.shared.util.Url
 import org.readium.r2.shared.util.data.ReadError
 
 @ExperimentalReadiumApi
-public class JetpackPdfEngineProvider
-@RequiresExtension(extension = Build.VERSION_CODES.S, version = 13) constructor(
+@RequiresApi(Build.VERSION_CODES.O)
+public class JetpackPdfEngineProvider(
     private val defaults: JetpackPdfDefaults = JetpackPdfDefaults(),
-    private val dataSource: Uri? = null
 ) : PdfEngineProvider<JetpackPdfSettings, JetpackPdfPreferences, JetpackPdfPreferencesEditor> {
 
     public companion object {
-        @ChecksSdkIntAtLeast(extension = Build.VERSION_CODES.S, api = 13)
+        @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.O)
         public fun isSupported(): Boolean {
-            return Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
-                SdkExtensions.getExtensionVersion(Build.VERSION_CODES.S) >= 13
+            return Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
         }
     }
 
     init {
         require(isSupported()) {
-            "JetpackPdfEngineProvider requires Android 12 (API 31) with SDK Extension 13 or higher."
+            "JetpackPdfEngineProvider requires Android 8.0 (API 26) or higher."
         }
     }
 
-    @RequiresExtension(extension = Build.VERSION_CODES.S, version = 13)
     override fun createDocumentFragmentFactory(
         input: PdfDocumentFragmentInput<JetpackPdfSettings>
     ): SingleFragmentFactory<out JetpackPdfDocumentFragment> =
         createFragmentFactory {
-            val documentHref = if (dataSource != null) {
-                Url(dataSource.toString()) ?: input.href
-            } else {
-                input.href
-            }
             JetpackPdfDocumentFragment(
-                href = documentHref,
+                publication = input.publication,
+                href = input.href,
                 initialPageIndex = input.pageIndex,
                 initialSettings = input.settings,
                 listener = object : JetpackPdfDocumentFragment.Listener {

@@ -11,16 +11,27 @@ package org.readium.adapter.jetpackpdf.document
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
+import android.os.Build
+import android.os.Handler
+import android.os.HandlerThread
 import android.os.ParcelFileDescriptor
+import android.os.ProxyFileDescriptorCallback
+import android.os.storage.StorageManager
+import android.system.ErrnoException
+import android.system.OsConstants
+import androidx.annotation.RequiresApi
 import java.io.File
 import kotlin.reflect.KClass
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.readium.r2.shared.InternalReadiumApi
 import org.readium.r2.shared.extensions.md5
 import org.readium.r2.shared.util.Try
 import org.readium.r2.shared.util.data.ReadError
 import org.readium.r2.shared.util.data.ReadTry
+import org.readium.r2.shared.util.file.FileSystemError
+import org.readium.r2.shared.util.getOrElse
 import org.readium.r2.shared.util.pdf.PdfDocument
 import org.readium.r2.shared.util.pdf.PdfDocumentFactory
 import org.readium.r2.shared.util.resource.Resource
@@ -35,6 +46,7 @@ public class JetpackPdfDocument(
     public val renderer: PdfRenderer,
     public val fileDescriptor: ParcelFileDescriptor,
     override val identifier: String?,
+    private val handlerThread: HandlerThread? = null
 ) : PdfDocument {
 
     override val pageCount: Int
@@ -66,10 +78,7 @@ public class JetpackPdfDocument(
                         )
 
                         page.render(
-                            bitmap,
-                            null,
-                            null,
-                            PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY
+                            bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY
                         )
                         bitmap
                     }
@@ -90,6 +99,7 @@ public class JetpackPdfDocument(
         try {
             renderer.close()
             fileDescriptor.close()
+            handlerThread?.quitSafely()
         } catch (e: Exception) {
             Timber.w(e, "Error closing JetpackPdfDocument")
         }
@@ -103,37 +113,97 @@ public class JetpackPdfDocumentFactory(
     override val documentType: KClass<JetpackPdfDocument> = JetpackPdfDocument::class
 
     override suspend fun open(resource: Resource, password: String?): ReadTry<JetpackPdfDocument> {
-        val uri = resource.sourceUrl?.toUri()
-            ?: return Try.failure(ReadError.Decoding("Jetpack PDF requires a file Uri"))
-
         return withContext(Dispatchers.IO) {
-            try {
-                val pfd = try {
-                    context.contentResolver.openFileDescriptor(uri, "r")
-                } catch (e: Exception) {
-                    if (uri.scheme == "file" && uri.path != null) {
-                        ParcelFileDescriptor.open(
-                            File(uri.path!!),
-                            ParcelFileDescriptor.MODE_READ_ONLY
-                        )
-                    } else {
-                        throw e
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                openWithProxy(resource)
+            } else {
+                openWithFileDescriptor(resource)
+            }
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun openWithProxy(resource: Resource): ReadTry<JetpackPdfDocument> {
+        val storageManager = context.getSystemService(Context.STORAGE_SERVICE) as StorageManager
+        val handlerThread = HandlerThread("JetpackPdfDocProxy").apply { start() }
+        val handler = Handler(handlerThread.looper)
+
+        val callback = object : ProxyFileDescriptorCallback() {
+            override fun onGetSize(): Long {
+                return runBlocking {
+                    resource.length().getOrElse {
+                        throw ErrnoException("Failed to get size", OsConstants.EIO)
                     }
                 }
-
-                if (pfd == null) {
-                    return@withContext Try.failure(ReadError.Decoding("Could not open file descriptor for $uri"))
-                }
-
-                val renderer = PdfRenderer(pfd)
-                val identifier = uri.toString().toByteArray().md5()
-
-                Try.success(JetpackPdfDocument(renderer, pfd, identifier))
-            } catch (e: SecurityException) {
-                Try.failure(ReadError.Decoding(e))
-            } catch (e: Exception) {
-                Try.failure(ReadError.Decoding(e))
             }
+
+            override fun onRead(offset: Long, size: Int, data: ByteArray): Int {
+                return runBlocking {
+                    // Clamp size to remaining
+                    val length = resource.length().getOrElse { return@runBlocking -1 }
+                    if (offset >= length) return@runBlocking 0
+
+                    val readSize = size.coerceAtMost((length - offset).toInt())
+                    val range = offset until (offset + readSize)
+
+                    resource.read(range).map { bytes ->
+                        bytes.copyInto(data)
+                        bytes.size
+                    }.getOrElse {
+                        throw ErrnoException("Failed to read", OsConstants.EIO)
+                    }
+                }
+            }
+
+            override fun onRelease() {
+                resource.close()
+            }
+        }
+
+        return try {
+            val pfd = storageManager.openProxyFileDescriptor(
+                ParcelFileDescriptor.MODE_READ_ONLY, callback, handler
+            )
+            val renderer = PdfRenderer(pfd)
+            val identifier = resource.sourceUrl?.toString()?.toByteArray()?.md5()
+
+            Try.success(JetpackPdfDocument(renderer, pfd, identifier, handlerThread))
+
+        } catch (e: Exception) {
+            handlerThread.quitSafely()
+            Try.failure(ReadError.Access(FileSystemError.IO(e)))
+        }
+    }
+
+    private fun openWithFileDescriptor(resource: Resource): ReadTry<JetpackPdfDocument> {
+        val uri = resource.sourceUrl?.toUri()
+            ?: return Try.failure(ReadError.Decoding("Jetpack PDF requires a file Uri on Android < 8.0"))
+
+        return try {
+            val pfd = try {
+                context.contentResolver.openFileDescriptor(uri, "r")
+            } catch (e: Exception) {
+                if (uri.scheme == "file" && uri.path != null) {
+                    ParcelFileDescriptor.open(
+                        File(uri.path!!), ParcelFileDescriptor.MODE_READ_ONLY
+                    )
+                } else {
+                    throw e
+                }
+            }
+
+            if (pfd == null) {
+                return Try.failure(ReadError.Decoding("Could not open file descriptor for $uri"))
+            }
+
+            val renderer = PdfRenderer(pfd)
+            val identifier = uri.toString().toByteArray().md5()
+
+            Try.success(JetpackPdfDocument(renderer, pfd, identifier))
+        } catch (e: SecurityException) {
+            Try.failure(ReadError.Decoding(e))
+        } catch (e: Exception) {
+            Try.failure(ReadError.Decoding(e))
         }
     }
 }
