@@ -7,10 +7,13 @@
 package org.readium.r2.testapp.reader
 
 import android.app.Application
+import android.net.Uri
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences as JetpackPreferences
+import java.io.File
 import org.json.JSONObject
 import org.readium.adapter.exoplayer.audio.ExoPlayerEngineProvider
+import org.readium.adapter.jetpackpdf.navigator.JetpackPdfEngineProvider
 import org.readium.adapter.pdfium.navigator.PdfiumEngineProvider
 import org.readium.navigator.media.audio.AudioNavigatorFactory
 import org.readium.navigator.media.tts.TtsNavigatorFactory
@@ -31,9 +34,12 @@ import org.readium.r2.testapp.domain.PublicationError
 import org.readium.r2.testapp.reader.preferences.AndroidTtsPreferencesManagerFactory
 import org.readium.r2.testapp.reader.preferences.EpubPreferencesManagerFactory
 import org.readium.r2.testapp.reader.preferences.ExoPlayerPreferencesManagerFactory
-import org.readium.r2.testapp.reader.preferences.PdfiumPreferencesManagerFactory
+import org.readium.r2.testapp.reader.preferences.JetpackPdfPreferencesManagerFactory
+//import org.readium.r2.testapp.reader.preferences.PdfiumPreferencesManagerFactory
 import org.readium.r2.testapp.utils.CoroutineQueue
 import timber.log.Timber
+import androidx.core.net.toUri
+import org.readium.r2.testapp.data.model.Book
 
 /**
  * Open and store publications in order for them to be listened or read.
@@ -116,7 +122,7 @@ class ReaderRepository(
             publication.conformsTo(Publication.Profile.EPUB) || publication.readingOrder.allAreHtml ->
                 openEpub(bookId, publication, initialLocator)
             publication.conformsTo(Publication.Profile.PDF) ->
-                openPdf(bookId, publication, initialLocator)
+                openPdf(bookId, publication, initialLocator, book)
             publication.conformsTo(Publication.Profile.DIVINA) ->
                 openImage(bookId, publication, initialLocator)
             else ->
@@ -203,10 +209,19 @@ class ReaderRepository(
         bookId: Long,
         publication: Publication,
         initialLocator: Locator?,
+        book: Book,
     ): Try<PdfReaderInitData, OpeningError> {
-        val preferencesManager = PdfiumPreferencesManagerFactory(preferencesDataStore)
+        if (!JetpackPdfEngineProvider.isSupported()) {
+            return Try.failure(
+                OpeningError.CannotRender(
+                    DebugError("Jetpack PDF requires Android 12+ (API 31) with SDK Extensions.")
+                )
+            )
+        }
+        val preferencesManager = JetpackPdfPreferencesManagerFactory(preferencesDataStore)
             .createPreferenceManager(bookId)
-        val pdfEngine = PdfiumEngineProvider()
+//        val pdfEngine = JetpackPdfEngineProvider(dataSource = book.href.toUri())
+        val pdfEngine = JetpackPdfEngineProvider()
         val navigatorFactory = PdfNavigatorFactory(publication, pdfEngine)
         val ttsInitData = getTtsInitData(bookId, publication)
 

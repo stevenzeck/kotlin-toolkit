@@ -21,6 +21,10 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import org.readium.adapter.exoplayer.audio.ExoPlayerPreferences
 import org.readium.adapter.exoplayer.audio.ExoPlayerPreferencesSerializer
+import org.readium.adapter.jetpackpdf.navigator.JetpackPdfPreferences
+import org.readium.adapter.jetpackpdf.navigator.JetpackPdfPreferencesSerializer
+import org.readium.adapter.jetpackpdf.navigator.JetpackPdfPublicationPreferencesFilter
+import org.readium.adapter.jetpackpdf.navigator.JetpackPdfSharedPreferencesFilter
 import org.readium.adapter.pdfium.navigator.PdfiumPreferences
 import org.readium.adapter.pdfium.navigator.PdfiumPreferencesSerializer
 import org.readium.adapter.pdfium.navigator.PdfiumPublicationPreferencesFilter
@@ -126,15 +130,15 @@ class EpubPreferencesManagerFactory(
     emptyPreferences = EpubPreferences()
 )
 
-class PdfiumPreferencesManagerFactory(
+class JetpackPdfPreferencesManagerFactory(
     dataStore: DataStore<Preferences>,
-) : PreferencesManagerFactory<PdfiumPreferences>(
+) : PreferencesManagerFactory<JetpackPdfPreferences>(
     dataStore = dataStore,
-    klass = PdfiumPreferences::class,
-    sharedPreferencesFilter = PdfiumSharedPreferencesFilter,
-    publicationPreferencesFilter = PdfiumPublicationPreferencesFilter,
-    preferencesSerializer = PdfiumPreferencesSerializer(),
-    emptyPreferences = PdfiumPreferences()
+    klass = JetpackPdfPreferences::class,
+    sharedPreferencesFilter = JetpackPdfSharedPreferencesFilter,
+    publicationPreferencesFilter = JetpackPdfPublicationPreferencesFilter,
+    preferencesSerializer = JetpackPdfPreferencesSerializer(),
+    emptyPreferences = JetpackPdfPreferences()
 )
 
 class ExoPlayerPreferencesManagerFactory(

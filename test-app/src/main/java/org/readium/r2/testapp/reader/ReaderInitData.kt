@@ -11,6 +11,8 @@ package org.readium.r2.testapp.reader
 import org.readium.adapter.exoplayer.audio.ExoPlayerNavigator
 import org.readium.adapter.exoplayer.audio.ExoPlayerNavigatorFactory
 import org.readium.adapter.exoplayer.audio.ExoPlayerPreferences
+import org.readium.adapter.jetpackpdf.navigator.JetpackPdfNavigatorFactory
+import org.readium.adapter.jetpackpdf.navigator.JetpackPdfPreferences
 import org.readium.adapter.pdfium.navigator.PdfiumNavigatorFactory
 import org.readium.adapter.pdfium.navigator.PdfiumPreferences
 import org.readium.navigator.media.tts.AndroidTtsNavigatorFactory
@@ -53,8 +55,8 @@ class PdfReaderInitData(
     bookId: Long,
     publication: Publication,
     initialLocation: Locator?,
-    val preferencesManager: PreferencesManager<PdfiumPreferences>,
-    val navigatorFactory: PdfiumNavigatorFactory,
+    val preferencesManager: PreferencesManager<JetpackPdfPreferences>,
+    val navigatorFactory: JetpackPdfNavigatorFactory,
     ttsInitData: TtsInitData?,
 ) : VisualReaderInitData(bookId, publication, initialLocation, ttsInitData)
 

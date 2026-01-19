@@ -8,6 +8,7 @@ package org.readium.r2.testapp
 
 import android.content.Context
 import android.view.View
+import org.readium.adapter.jetpackpdf.document.JetpackPdfDocumentFactory
 import org.readium.adapter.pdfium.document.PdfiumDocumentFactory
 import org.readium.r2.lcp.LcpError
 import org.readium.r2.lcp.LcpService
@@ -57,7 +58,7 @@ class Readium(context: Context) {
             assetRetriever = assetRetriever,
             httpClient = httpClient,
             // Only required if you want to support PDF files using the PDFium adapter.
-            pdfFactory = PdfiumDocumentFactory(context)
+            pdfFactory = JetpackPdfDocumentFactory(context)
         ),
         contentProtections = contentProtections
     )

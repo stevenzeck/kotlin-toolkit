@@ -15,6 +15,10 @@ import org.readium.adapter.pdfium.navigator.PdfiumEngineProvider
 import org.readium.adapter.pdfium.navigator.PdfiumNavigatorFragment
 import org.readium.adapter.pdfium.navigator.PdfiumPreferences
 import org.readium.adapter.pdfium.navigator.PdfiumSettings
+import org.readium.adapter.jetpackpdf.navigator.JetpackPdfEngineProvider
+import org.readium.adapter.jetpackpdf.navigator.JetpackPdfNavigatorFragment
+import org.readium.adapter.jetpackpdf.navigator.JetpackPdfPreferences
+import org.readium.adapter.jetpackpdf.navigator.JetpackPdfSettings
 import org.readium.r2.navigator.pdf.PdfNavigatorFragment
 import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.testapp.R
@@ -23,16 +27,19 @@ import org.readium.r2.testapp.reader.preferences.UserPreferencesViewModel
 @OptIn(ExperimentalReadiumApi::class)
 class PdfReaderFragment : VisualReaderFragment() {
 
-    override lateinit var navigator: PdfiumNavigatorFragment
+    override lateinit var navigator: JetpackPdfNavigatorFragment
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val readerData = model.readerInitData as? PdfReaderInitData ?: run {
             // We provide a dummy fragment factory  if the ReaderActivity is restored after the
             // app process was killed because the ReaderRepository is empty. In that case, finish
             // the activity as soon as possible and go back to the previous one.
-            childFragmentManager.fragmentFactory = PdfNavigatorFragment.createDummyFactory(
-                pdfEngineProvider = PdfiumEngineProvider()
-            )
+            if (JetpackPdfEngineProvider.isSupported()) {
+                childFragmentManager.fragmentFactory = PdfNavigatorFragment.createDummyFactory(
+                    pdfEngineProvider = JetpackPdfEngineProvider()
+                )
+            }
+
             super.onCreate(savedInstanceState)
             requireActivity().finish()
             return
@@ -67,7 +74,7 @@ class PdfReaderFragment : VisualReaderFragment() {
 
         @Suppress("Unchecked_cast")
         navigator = childFragmentManager.findFragmentByTag(NAVIGATOR_FRAGMENT_TAG)!!
-            as PdfiumNavigatorFragment
+            as JetpackPdfNavigatorFragment
         return view
     }
 
@@ -75,7 +82,7 @@ class PdfReaderFragment : VisualReaderFragment() {
         super.onViewCreated(view, savedInstanceState)
 
         @Suppress("Unchecked_cast")
-        (model.settings as UserPreferencesViewModel<PdfiumSettings, PdfiumPreferences>)
+        (model.settings as UserPreferencesViewModel<JetpackPdfSettings, JetpackPdfPreferences>)
             .bind(navigator, viewLifecycleOwner)
     }
 

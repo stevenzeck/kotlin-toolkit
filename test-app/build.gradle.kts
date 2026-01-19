@@ -85,6 +85,7 @@ dependencies {
     implementation(project(":readium:readium-lcp"))
     // Only required if you want to support PDF files using PDFium.
     implementation(project(":readium:adapters:pdfium"))
+    implementation(project(":readium:adapters:jetpackpdf"))
 
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.appcompat)
