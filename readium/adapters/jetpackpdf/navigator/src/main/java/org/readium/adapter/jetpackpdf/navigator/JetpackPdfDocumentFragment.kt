@@ -49,6 +49,7 @@ import org.readium.r2.shared.util.toUri
 
 @RequiresApi(Build.VERSION_CODES.O)
 @ExperimentalReadiumApi
+@InternalReadiumApi
 public class JetpackPdfDocumentFragment internal constructor(
     private val publication: Publication,
     private val href: Url,

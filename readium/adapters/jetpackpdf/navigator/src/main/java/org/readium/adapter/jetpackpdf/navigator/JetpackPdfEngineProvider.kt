@@ -28,12 +28,12 @@ import org.readium.r2.shared.util.Url
 import org.readium.r2.shared.util.data.ReadError
 
 @ExperimentalReadiumApi
-@RequiresApi(Build.VERSION_CODES.O)
 public class JetpackPdfEngineProvider(
     private val defaults: JetpackPdfDefaults = JetpackPdfDefaults(),
 ) : PdfEngineProvider<JetpackPdfSettings, JetpackPdfPreferences, JetpackPdfPreferencesEditor> {
 
     public companion object {
+
         @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.O)
         public fun isSupported(): Boolean {
             return Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
@@ -46,6 +46,7 @@ public class JetpackPdfEngineProvider(
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun createDocumentFragmentFactory(
         input: PdfDocumentFragmentInput<JetpackPdfSettings>
     ): SingleFragmentFactory<out JetpackPdfDocumentFragment> =
