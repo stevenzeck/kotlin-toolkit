@@ -107,6 +107,7 @@ androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "a
 androidx-pdf-document = { group = "androidx.pdf", name = "pdf-document-service", version.ref = "androidx-pdf" }
 androidx-pdf-viewer = { group = "androidx.pdf", name = "pdf-viewer", version.ref = "androidx-pdf" }
 androidx-pdf-viewer-fragment = { group = "androidx.pdf", name = "pdf-viewer-fragment", version.ref = "androidx-pdf" }
+androidx-pdf-compose = { group = "androidx.pdf", name = "pdf-compose", version.ref = "androidx-pdf" }
 
 assertj = { group = "org.assertj", name = "assertj-core", version.ref = "assertj" }
 

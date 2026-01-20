@@ -26,6 +26,7 @@ dependencies {
     implementation(libs.androidx.pdf.document)
     implementation(libs.androidx.pdf.viewer)
     implementation(libs.androidx.pdf.viewer.fragment)
+    implementation(libs.androidx.pdf.compose)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
 }
