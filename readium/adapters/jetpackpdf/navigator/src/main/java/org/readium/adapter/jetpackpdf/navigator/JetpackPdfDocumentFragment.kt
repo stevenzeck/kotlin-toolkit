@@ -46,6 +46,7 @@ import org.readium.r2.shared.util.data.ReadError
 import org.readium.r2.shared.util.file.FileSystemError
 import org.readium.r2.shared.util.getOrElse
 import org.readium.r2.shared.util.toUri
+import timber.log.Timber
 
 @RequiresApi(Build.VERSION_CODES.O)
 @ExperimentalReadiumApi
@@ -228,14 +229,14 @@ public class JetpackPdfDocumentFragment internal constructor(
         try {
             pdfDocument?.close()
         } catch (e: Exception) {
-            // Ignore
+            Timber.e(e)
         }
         pdfDocument = null
 
         try {
             fileDescriptor?.close()
         } catch (e: IOException) {
-            // Ignore
+            Timber.e(e)
         }
         fileDescriptor = null
 
