@@ -19,6 +19,16 @@ All notable changes to this project will be documented in this file. Take a look
     * You must ensure the identifier is unique and stable for the device (persist and reuse across app launches).
     * Recommended: generate an app-scoped UUID and store it securely. Avoid hardware or advertising identifiers.
 
+### Deprecated
+
+#### Streamer
+
+* Removed title inference based on folder names within image and audio archives. Use the archive's filename instead.
+
+#### Shared
+
+* The Presentation Hints properties are deprecated from the Readium Web Publication Manifest models. [See the official documentation](https://readium.org/webpub-manifest/profiles/epub.html#appendix-b---deprecated-properties).
+
 ### Fixed
 
 #### Shared
