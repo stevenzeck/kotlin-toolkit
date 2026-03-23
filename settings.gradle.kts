@@ -38,9 +38,13 @@ include(":readium:adapters:jetpackpdf:document")
 project(":readium:adapters:jetpackpdf:document")
     .name = "readium-adapter-jetpackpdf-document"
 
-include(":readium:adapters:jetpackpdf:navigator")
-project(":readium:adapters:jetpackpdf:navigator")
-    .name = "readium-adapter-jetpackpdf-navigator"
+include(":readium:adapters:jetpackpdf:navigator-fragment")
+project(":readium:adapters:jetpackpdf:navigator-fragment")
+    .name = "readium-adapter-jetpackpdf-navigator-fragment"
+
+include(":readium:adapters:jetpackpdf:navigator-compose")
+project(":readium:adapters:jetpackpdf:navigator-compose")
+    .name = "readium-adapter-jetpackpdf-navigator-compose"
 
 include(":readium:lcp")
 project(":readium:lcp")
