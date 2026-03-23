@@ -15,10 +15,10 @@ import org.readium.adapter.pdfium.navigator.PdfiumEngineProvider
 import org.readium.adapter.pdfium.navigator.PdfiumNavigatorFragment
 import org.readium.adapter.pdfium.navigator.PdfiumPreferences
 import org.readium.adapter.pdfium.navigator.PdfiumSettings
-import org.readium.adapter.jetpackpdf.navigator.JetpackPdfEngineProvider
-import org.readium.adapter.jetpackpdf.navigator.JetpackPdfNavigatorFragment
-import org.readium.adapter.jetpackpdf.navigator.JetpackPdfPreferences
-import org.readium.adapter.jetpackpdf.navigator.JetpackPdfSettings
+import org.readium.adapter.jetpackpdf.navigator.fragment.JetpackPdfEngineProvider
+import org.readium.adapter.jetpackpdf.navigator.fragment.JetpackPdfNavigatorFragment
+import org.readium.adapter.jetpackpdf.navigator.fragment.JetpackPdfPreferences
+import org.readium.adapter.jetpackpdf.navigator.fragment.JetpackPdfSettings
 import org.readium.r2.navigator.pdf.PdfNavigatorFragment
 import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.testapp.R

@@ -21,10 +21,10 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import org.readium.adapter.exoplayer.audio.ExoPlayerPreferences
 import org.readium.adapter.exoplayer.audio.ExoPlayerPreferencesSerializer
-import org.readium.adapter.jetpackpdf.navigator.JetpackPdfPreferences
-import org.readium.adapter.jetpackpdf.navigator.JetpackPdfPreferencesSerializer
-import org.readium.adapter.jetpackpdf.navigator.JetpackPdfPublicationPreferencesFilter
-import org.readium.adapter.jetpackpdf.navigator.JetpackPdfSharedPreferencesFilter
+import org.readium.adapter.jetpackpdf.navigator.fragment.JetpackPdfPreferences
+import org.readium.adapter.jetpackpdf.navigator.fragment.JetpackPdfPreferencesSerializer
+import org.readium.adapter.jetpackpdf.navigator.fragment.JetpackPdfPublicationPreferencesFilter
+import org.readium.adapter.jetpackpdf.navigator.fragment.JetpackPdfSharedPreferencesFilter
 import org.readium.adapter.pdfium.navigator.PdfiumPreferences
 import org.readium.adapter.pdfium.navigator.PdfiumPreferencesSerializer
 import org.readium.adapter.pdfium.navigator.PdfiumPublicationPreferencesFilter

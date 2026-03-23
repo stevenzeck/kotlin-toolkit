@@ -13,7 +13,7 @@ import androidx.datastore.preferences.core.Preferences as JetpackPreferences
 import java.io.File
 import org.json.JSONObject
 import org.readium.adapter.exoplayer.audio.ExoPlayerEngineProvider
-import org.readium.adapter.jetpackpdf.navigator.JetpackPdfEngineProvider
+import org.readium.adapter.jetpackpdf.navigator.fragment.JetpackPdfEngineProvider
 import org.readium.adapter.pdfium.navigator.PdfiumEngineProvider
 import org.readium.navigator.media.audio.AudioNavigatorFactory
 import org.readium.navigator.media.tts.TtsNavigatorFactory
