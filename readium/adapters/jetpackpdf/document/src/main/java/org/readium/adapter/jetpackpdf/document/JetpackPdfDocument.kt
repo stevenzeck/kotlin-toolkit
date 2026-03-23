@@ -115,9 +115,9 @@ public class JetpackPdfDocumentFactory(
     override suspend fun open(resource: Resource, password: String?): ReadTry<JetpackPdfDocument> {
         return withContext(Dispatchers.IO) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                openWithProxy(resource)
+                openWithProxy(resource = resource)
             } else {
-                openWithFileDescriptor(resource)
+                openWithFileDescriptor(resource = resource)
             }
         }
     }
@@ -167,17 +167,24 @@ public class JetpackPdfDocumentFactory(
             val renderer = PdfRenderer(pfd)
             val identifier = resource.sourceUrl?.toString()?.toByteArray()?.md5()
 
-            Try.success(JetpackPdfDocument(renderer, pfd, identifier, handlerThread))
+            Try.success(
+                success = JetpackPdfDocument(
+                    renderer = renderer,
+                    fileDescriptor = pfd,
+                    identifier = identifier,
+                    handlerThread = handlerThread
+                )
+            )
 
         } catch (e: Exception) {
             handlerThread.quitSafely()
-            Try.failure(ReadError.Access(FileSystemError.IO(e)))
+            Try.failure(failure = ReadError.Access(cause = FileSystemError.IO(e)))
         }
     }
 
     private fun openWithFileDescriptor(resource: Resource): ReadTry<JetpackPdfDocument> {
         val uri = resource.sourceUrl?.toUri()
-            ?: return Try.failure(ReadError.Decoding("Jetpack PDF requires a file Uri on Android < 8.0"))
+            ?: return Try.failure(failure = ReadError.Decoding("Jetpack PDF requires a file Uri on Android < 8.0"))
 
         return try {
             val pfd = try {
@@ -199,11 +206,17 @@ public class JetpackPdfDocumentFactory(
             val renderer = PdfRenderer(pfd)
             val identifier = uri.toString().toByteArray().md5()
 
-            Try.success(JetpackPdfDocument(renderer, pfd, identifier))
+            Try.success(
+                JetpackPdfDocument(
+                    renderer = renderer,
+                    fileDescriptor = pfd,
+                    identifier = identifier
+                )
+            )
         } catch (e: SecurityException) {
-            Try.failure(ReadError.Decoding(e))
+            Try.failure(failure = ReadError.Decoding(e))
         } catch (e: Exception) {
-            Try.failure(ReadError.Decoding(e))
+            Try.failure(failure = ReadError.Decoding(e))
         }
     }
 }

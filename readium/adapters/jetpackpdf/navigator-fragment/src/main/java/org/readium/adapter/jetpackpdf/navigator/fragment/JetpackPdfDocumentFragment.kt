@@ -149,8 +149,8 @@ public class JetpackPdfDocumentFragment internal constructor(
         val resource = publication.get(href)
         if (resource == null) {
             listener?.onResourceLoadFailed(
-                href,
-                ReadError.Access(FileSystemError.FileNotFound(null))
+                href = href,
+                error = ReadError.Access(cause = FileSystemError.FileNotFound(cause = null))
             )
             return
         }
@@ -195,7 +195,10 @@ public class JetpackPdfDocumentFragment internal constructor(
                 handler
             )
         } catch (e: Exception) {
-            listener?.onResourceLoadFailed(href, ReadError.Access(FileSystemError.IO(e)))
+            listener?.onResourceLoadFailed(
+                href = href,
+                error = ReadError.Access(cause = FileSystemError.IO(e))
+            )
             resource.close()
             return
         }
@@ -206,18 +209,18 @@ public class JetpackPdfDocumentFragment internal constructor(
         // Load Document via SandboxedPdfLoader
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val loader = SandboxedPdfLoader(context)
-                val document = loader.openDocument(uri, fd, null)
+                val loader = SandboxedPdfLoader(context = context)
+                val document = loader.openDocument(uri = uri, fileDescriptor = fd, password = null)
 
                 withContext(Dispatchers.Main) {
                     this@JetpackPdfDocumentFragment.pdfDocument = document
                     pdfView?.pdfDocument = document
                     // Restore page index if needed
-                    pdfView?.scrollToPage(_pageIndex.value)
+                    pdfView?.scrollToPage(pageNum = _pageIndex.value)
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    listener?.onResourceLoadFailed(href, ReadError.Decoding(e))
+                    listener?.onResourceLoadFailed(href = href, error = ReadError.Decoding(e))
                 }
             }
         }
@@ -249,7 +252,7 @@ public class JetpackPdfDocumentFragment internal constructor(
     override fun goToPageIndex(index: Int, animated: Boolean): Boolean {
         if (_pageIndex.value == index) return false
         _pageIndex.value = index
-        pdfView?.scrollToPage(index)
+        pdfView?.scrollToPage(pageNum = index)
         return true
     }
 

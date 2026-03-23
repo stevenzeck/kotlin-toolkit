@@ -17,8 +17,11 @@ import org.readium.r2.shared.ExperimentalReadiumApi
 public class JetpackPdfPreferencesSerializer : PreferencesSerializer<JetpackPdfPreferences> {
 
     override fun serialize(preferences: JetpackPdfPreferences): String =
-        Json.encodeToString(JetpackPdfPreferences.serializer(), preferences)
+        Json.encodeToString(serializer = JetpackPdfPreferences.serializer(), value = preferences)
 
     override fun deserialize(preferences: String): JetpackPdfPreferences =
-        Json.decodeFromString(JetpackPdfPreferences.serializer(), preferences)
+        Json.decodeFromString(
+            deserializer = JetpackPdfPreferences.serializer(),
+            string = preferences
+        )
 }

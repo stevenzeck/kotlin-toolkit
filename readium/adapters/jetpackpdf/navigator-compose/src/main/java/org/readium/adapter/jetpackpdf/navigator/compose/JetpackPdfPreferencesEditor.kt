@@ -23,7 +23,7 @@ public class JetpackPdfPreferencesEditor internal constructor(
     )
 
     private val settingsResolver: JetpackPdfSettingsResolver =
-        JetpackPdfSettingsResolver(publicationMetadata, defaults)
+        JetpackPdfSettingsResolver(metadata = publicationMetadata, defaults = defaults)
 
     private var state: State = initialPreferences.toState()
 
@@ -46,5 +46,5 @@ public class JetpackPdfPreferencesEditor internal constructor(
     }
 
     private fun JetpackPdfPreferences.toState() =
-        State(preferences = this, settings = settingsResolver.settings(this))
+        State(preferences = this, settings = settingsResolver.settings(preferences = this))
 }

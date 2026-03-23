@@ -58,11 +58,11 @@ public class JetpackPdfEngineProvider(
                 initialSettings = input.settings,
                 listener = object : JetpackPdfDocumentFragment.Listener {
                     override fun onResourceLoadFailed(href: Url, error: ReadError) {
-                        input.navigatorListener?.onResourceLoadFailed(href, error)
+                        input.navigatorListener?.onResourceLoadFailed(href = href, error = error)
                     }
 
                     override fun onTap(point: PointF): Boolean =
-                        input.inputListener?.onTap(TapEvent(point)) ?: false
+                        input.inputListener?.onTap(event = TapEvent(point)) ?: false
                 }
             )
         }
@@ -71,8 +71,8 @@ public class JetpackPdfEngineProvider(
         metadata: Metadata,
         preferences: JetpackPdfPreferences
     ): JetpackPdfSettings {
-        val settingsPolicy = JetpackPdfSettingsResolver(metadata, defaults)
-        return settingsPolicy.settings(preferences)
+        val settingsPolicy = JetpackPdfSettingsResolver(metadata = metadata, defaults = defaults)
+        return settingsPolicy.settings(preferences = preferences)
     }
 
     override fun computeOverflow(settings: JetpackPdfSettings): OverflowableNavigator.Overflow {
@@ -87,7 +87,11 @@ public class JetpackPdfEngineProvider(
         publication: Publication,
         initialPreferences: JetpackPdfPreferences
     ): JetpackPdfPreferencesEditor =
-        JetpackPdfPreferencesEditor(initialPreferences, publication.metadata, defaults)
+        JetpackPdfPreferencesEditor(
+            initialPreferences = initialPreferences,
+            publicationMetadata = publication.metadata,
+            defaults = defaults
+        )
 
     override fun createEmptyPreferences(): JetpackPdfPreferences =
         JetpackPdfPreferences()

@@ -45,6 +45,7 @@ import org.readium.r2.shared.publication.Metadata
 import org.readium.r2.shared.publication.Publication
 import org.readium.r2.shared.util.getOrElse
 import org.readium.r2.shared.util.toUri
+import timber.log.Timber
 
 @ExperimentalReadiumApi
 public class JetpackPdfEngineProvider(
@@ -81,10 +82,7 @@ public class JetpackPdfEngineProvider(
             val handlerThread = HandlerThread("JetpackPdfProxy").apply { start() }
             val handler = Handler(handlerThread.looper)
 
-            val resource = input.publication.get(input.href)
-            if (resource == null) {
-                return@LaunchedEffect
-            }
+            val resource = input.publication.get(input.href) ?: return@LaunchedEffect
 
             val callback = object : ProxyFileDescriptorCallback() {
                 override fun onGetSize(): Long {
@@ -124,6 +122,7 @@ public class JetpackPdfEngineProvider(
                     handler
                 )
             } catch (e: Exception) {
+                Timber.e(e)
                 resource.close()
                 null
             }
@@ -131,8 +130,12 @@ public class JetpackPdfEngineProvider(
             if (fileDescriptor != null) {
                 withContext(Dispatchers.IO) {
                     try {
-                        val loader = SandboxedPdfLoader(context)
-                        val document = loader.openDocument(input.href.toUri(), fileDescriptor, null)
+                        val loader = SandboxedPdfLoader(context = context)
+                        val document = loader.openDocument(
+                            uri = input.href.toUri(),
+                            fileDescriptor = fileDescriptor,
+                            password = null
+                        )
                         documentState.value = document
                     } catch (e: Exception) {
                         e.printStackTrace()
@@ -154,7 +157,7 @@ public class JetpackPdfEngineProvider(
         }
 
         LaunchedEffect(input.pageIndex) {
-            pdfViewerState.scrollToPage(input.pageIndex)
+            pdfViewerState.scrollToPage(pageNum = input.pageIndex)
         }
 
         PdfViewer(
@@ -163,7 +166,7 @@ public class JetpackPdfEngineProvider(
             modifier = modifier,
             onFirstContentLoad = {
                 coroutineScope.launch {
-                    pdfViewerState.scrollToPage(input.pageIndex)
+                    pdfViewerState.scrollToPage(pageNum = input.pageIndex)
                 }
             }
         )
@@ -173,8 +176,8 @@ public class JetpackPdfEngineProvider(
         metadata: Metadata,
         preferences: JetpackPdfPreferences
     ): JetpackPdfSettings {
-        val settingsPolicy = JetpackPdfSettingsResolver(metadata, defaults)
-        return settingsPolicy.settings(preferences)
+        val settingsPolicy = JetpackPdfSettingsResolver(metadata = metadata, defaults = defaults)
+        return settingsPolicy.settings(preferences = preferences)
     }
 
     override fun computeOverflow(settings: JetpackPdfSettings): Overflow {
@@ -189,7 +192,11 @@ public class JetpackPdfEngineProvider(
         publication: Publication,
         initialPreferences: JetpackPdfPreferences
     ): JetpackPdfPreferencesEditor =
-        JetpackPdfPreferencesEditor(initialPreferences, publication.metadata, defaults)
+        JetpackPdfPreferencesEditor(
+            initialPreferences = initialPreferences,
+            publicationMetadata = publication.metadata,
+            defaults = defaults
+        )
 
     override fun createEmptyPreferences(): JetpackPdfPreferences =
         JetpackPdfPreferences()
