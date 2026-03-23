@@ -156,10 +156,6 @@ public class JetpackPdfEngineProvider(
             }
         }
 
-        LaunchedEffect(input.pageIndex) {
-            pdfViewerState.scrollToPage(pageNum = input.pageIndex)
-        }
-
         PdfViewer(
             pdfDocument = documentState.value,
             state = pdfViewerState,
