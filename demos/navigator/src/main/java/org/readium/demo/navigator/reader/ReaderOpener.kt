@@ -15,6 +15,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import org.readium.adapter.jetpackpdf.document.JetpackPdfDocumentFactory
+import org.readium.adapter.jetpackpdf.navigator.compose.JetpackPdfEngineProvider
+import org.readium.adapter.jetpackpdf.navigator.compose.JetpackPdfPreferences
 import org.readium.demo.navigator.decorations.FixedWebHighlightsManager
 import org.readium.demo.navigator.decorations.HighlightsManager
 import org.readium.demo.navigator.decorations.ReflowableWebHighlightsManager
@@ -50,7 +53,6 @@ import org.readium.r2.shared.util.getOrElse
 import org.readium.r2.shared.util.http.DefaultHttpClient
 import org.readium.r2.streamer.PublicationOpener
 import org.readium.r2.streamer.parser.DefaultPublicationParser
-
 class ReaderOpener(
     private val application: Application,
 ) {
@@ -61,8 +63,10 @@ class ReaderOpener(
     private val assetRetriever =
         AssetRetriever(application.contentResolver, httpClient)
 
+    private val pdfFactory = JetpackPdfDocumentFactory(application)
+
     private val publicationParser =
-        DefaultPublicationParser(application, httpClient, assetRetriever, null)
+        DefaultPublicationParser(application, httpClient, assetRetriever, pdfFactory)
 
     private val publicationOpener =
         PublicationOpener(publicationParser)
@@ -80,7 +84,8 @@ class ReaderOpener(
         val initialLocator = LocatorRepository.getLocator(url)
 
         val readerState = (
-            createFixedWebReader(url, publication, initialLocator)
+            createJetpackPdfReader(url, publication, initialLocator)
+                ?: createFixedWebReader(url, publication, initialLocator)
                 ?: createReflowableWebReader(url, publication, initialLocator)
             )
             .or { Try.failure(DebugError("Publication not supported")) }
@@ -94,6 +99,42 @@ class ReaderOpener(
 
     private fun <S, F> Try<S, F>?.or(onNull: () -> Try<S, F>): Try<S, F> =
         this ?: onNull()
+
+    private fun createJetpackPdfReader(
+        url: AbsoluteUrl,
+        publication: Publication,
+        initialLocator: Locator?,
+    ): Try<ReaderState<EmptyLocation, EmptyGoLocation, EmptySelectionLocation, EmptyController>, Error>? {
+        if (publication.conformsTo(Publication.Profile.PDF)) {
+            val coroutineScope = MainScope()
+            val engineProvider = JetpackPdfEngineProvider()
+            val initialPreferences = JetpackPdfPreferences()
+
+            val preferencesManager = PreferencesManager(initialPreferences)
+            val preferencesEditor = engineProvider.createPreferenceEditor(publication, initialPreferences)
+
+            snapshotFlow { preferencesEditor.preferences }
+                .onEach { preferencesManager.setPreferences(it) }
+                .launchIn(coroutineScope)
+
+            val renditionState = EmptyRenditionState()
+
+            val readerState = ReaderState(
+                url = url,
+                coroutineScope = coroutineScope,
+                publication = publication,
+                renditionState = renditionState,
+                preferencesEditor = preferencesEditor,
+                onControllerAvailable = {},
+                actionModeFactory = SelectionActionModeFactory(FixedWebHighlightsManager()),
+                highlightsManager = FixedWebHighlightsManager()
+            )
+
+            return Try.success(readerState)
+        }
+        return null
+    }
+
 
     private suspend fun createReflowableWebReader(
         url: AbsoluteUrl,

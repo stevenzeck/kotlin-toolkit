@@ -52,7 +52,7 @@ public interface PreferencesEditor<P : Preferences<P>, S : Settings> {
  * JSON serializer of [P].
  */
 @ExperimentalReadiumApi
-public interface PreferencesSerializer<P : Configurable.Preferences<P>> {
+public interface PreferencesSerializer<P : Preferences<P>> {
 
     /**
      * Serialize [P] into a JSON string.

@@ -69,7 +69,7 @@ dependencies {
     implementation(project(":readium:readium-navigator"))
     implementation(project(":readium:navigators:web:readium-navigator-web-reflowable"))
     implementation(project(":readium:navigators:web:readium-navigator-web-fixedlayout"))
-    implementation(project(":readium:adapters:pdfium"))
+    implementation(project(":readium:adapters:jetpackpdf:readium-adapter-jetpackpdf-navigator-compose"))
 
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 

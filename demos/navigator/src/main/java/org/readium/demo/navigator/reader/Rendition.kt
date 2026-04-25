@@ -37,6 +37,8 @@ import androidx.compose.ui.zIndex
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import org.readium.adapter.jetpackpdf.navigator.compose.JetpackPdfEngineProvider
+import org.readium.adapter.jetpackpdf.navigator.compose.JetpackPdfPreferences
 import org.readium.demo.navigator.R
 import org.readium.demo.navigator.decorations.DecorationStyleAnnotationMark
 import org.readium.demo.navigator.decorations.EditAnnotationDialog
@@ -59,6 +61,7 @@ import org.readium.navigator.common.TapContext
 import org.readium.navigator.common.TapEvent
 import org.readium.navigator.common.defaultHyperlinkListener
 import org.readium.navigator.common.defaultInputListener
+import org.readium.navigator.pdf.PdfNavigator
 import org.readium.navigator.web.fixedlayout.FixedWebRendition
 import org.readium.navigator.web.fixedlayout.FixedWebRenditionState
 import org.readium.navigator.web.reflowable.ReflowableWebRendition
@@ -266,6 +269,14 @@ fun <L : ExportableLocation, G : GoLocation, S : SelectionLocation, C> Rendition
         }
 
         when (readerState.renditionState) {
+            is EmptyRenditionState -> {
+                PdfNavigator(
+                    modifier = Modifier.fillMaxSize(),
+                    publication = readerState.publication,
+                    pdfEngineProvider = JetpackPdfEngineProvider(),
+                    initialPreferences = readerState.preferencesEditor.preferences as JetpackPdfPreferences
+                )
+            }
             is FixedWebRenditionState -> {
                 FixedWebRendition(
                     modifier = Modifier.fillMaxSize(),

@@ -2,10 +2,10 @@
 
 [Jetpack PDF](https://developer.android.com/jetpack/androidx/releases/pdf) is Google's official
 Android library for viewing PDF documents. This adapter provides an implementation of Readium's
-`PdfDocument` for parsing a PDF publication, and of `PdfDocumentFragment` to render a PDF with
-`PdfNavigatorFragment`.
+`PdfDocument` for parsing a PDF publication, and `PdfEngineProvider` implementations to render a PDF
+with either `PdfNavigatorFragment` (Views) or `PdfNavigator` (Compose).
 
-This adapter utilizes `androidx.pdf.view.PdfView` for rendering and the native `PdfRenderer` for
+This adapter utilizes `androidx.pdf` for rendering and the native `PdfRenderer` for
 metadata and covers.
 
 * **Minimum API:** Requires **Android 8.0 (API 26)** or higher.
@@ -23,32 +23,39 @@ app's `build.gradle.kts`.
 
 ```kotlin
 dependencies {
-    implementation("org.readium.kotlin-toolkit:readium-adapter-jetpackpdf:$readium_version")
-    // Or, if you need only the parser but not the navigator:
+    // Basic support for parsing PDF publications
     implementation("org.readium.kotlin-toolkit:readium-adapter-jetpackpdf-document:$readium_version")
+
+    // To render with Fragments (Views)
+    implementation("org.readium.kotlin-toolkit:readium-adapter-jetpackpdf-navigator-fragment:$readium_version")
+
+    // To render with Jetpack Compose
+    implementation("org.readium.kotlin-toolkit:readium-adapter-jetpackpdf-navigator-compose:$readium_version")
+
+    // Or the umbrella dependency which includes everything
+    implementation("org.readium.kotlin-toolkit:readium-adapter-jetpackpdf:$readium_version")
 }
 ```
 
 ### Handling Manifest Merge Errors
 
 If your app supports Android versions lower than 12 (API 31), you will encounter a Manifest merger
-failed error because androidx.pdf requires minSdkVersion 31.
+failed error because `androidx.pdf` requires `minSdkVersion 31`.
 
-To fix this, you must explicitly override the library requirement in your AndroidManifest.xml to
+To fix this, you must explicitly override the library requirement in your `AndroidManifest.xml` to
 force the build system to merge the library:
 
 ```xml
 
-<manifest xmlns:tools="[http://schemas.android.com/tools](http://schemas.android.com/tools)">
+<manifest xmlns:tools="http://schemas.android.com/tools">
     <uses-sdk
         tools:overrideLibrary="androidx.pdf, androidx.pdf.compose, androidx.pdf.viewer.fragment, androidx.pdf.viewer, androidx.pdf.document, androidx.pdf.document.service" />
-
 </manifest>
 ```
 
 ## Parse a PDF into a Readium Publication
 
-To open a PDF publication with Jetpack PDF, initialize the Streamer with the adapter factory:
+To open a PDF publication with Jetpack PDF, initialize the `Streamer` with the adapter factory:
 
 ```kotlin
 val streamer = Streamer(
@@ -59,19 +66,39 @@ val streamer = Streamer(
 val publication = streamer.open(asset).getOrThrow()
 ```
 
-## Render a PDF with Readium's PdfNavigatorFragment
+## Render a PDF with Readium's PdfNavigator
 
-To render the PDF using Readium's `PdfNavigatorFragment`, instantiate `JetpackPdfEngineProvider` and
-use the `PdfNavigatorFactory`.
+Both Fragment and Compose implementations use a `JetpackPdfEngineProvider` to interface with the
+navigator.
 
 **Note**: This adapter requires Android 8.0+ (API 26). You must check for support before
 instantiating the engine provider using the provided `isSupported()` function.
 
+### Jetpack Compose
+
+Use the `JetpackPdfEngineProvider` from the `navigator-compose` module.
+
 ```kotlin
 if (JetpackPdfEngineProvider.isSupported()) {
-
     val pdfEngine = JetpackPdfEngineProvider(
-        // Optional defaults
+        defaults = JetpackPdfDefaults()
+    )
+
+    PdfNavigator(
+        publication = publication,
+        initialLocation = initialLocation,
+        pdfEngineProvider = pdfEngine
+    )
+}
+```
+
+### Fragments (Views)
+
+Use the `JetpackPdfEngineProvider` from the `navigator-fragment` module with `PdfNavigatorFragment`.
+
+```kotlin
+if (JetpackPdfEngineProvider.isSupported()) {
+    val pdfEngine = JetpackPdfEngineProvider(
         defaults = JetpackPdfDefaults()
     )
 
@@ -79,8 +106,8 @@ if (JetpackPdfEngineProvider.isSupported()) {
         publication = publication,
         pdfEngineProvider = pdfEngine
     )
-} else {
-    // Fallback to another adapter (e.g. Pdfium) or show an error
+
+    val fragment = navigatorFactory.createFragment(initialLocation)
 }
 ```
 
