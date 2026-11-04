@@ -4,11 +4,12 @@
  * available in the top-level LICENSE file of the project.
  */
 
-@file:OptIn(InternalReadiumApi::class)
+@file:OptIn(InternalReadiumApi::class, ExperimentalSerializationApi::class)
 
 package org.readium.r2.lcp.license.model
 
 import kotlin.time.Instant
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
@@ -18,6 +19,7 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonDecodingException
 import kotlinx.serialization.json.JsonEncoder
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
@@ -139,7 +141,11 @@ internal object StatusDocumentSerializer : KSerializer<StatusDocument> {
 
     override fun deserialize(decoder: Decoder): StatusDocument {
         val input = decoder as JsonDecoder
-        val jsonElement = input.decodeJsonElement() as JsonObject
+        val jsonElement = try {
+            input.decodeJsonElement() as? JsonObject
+        } catch (_: JsonDecodingException) {
+            null
+        } ?: throw LcpException(LcpError.Parsing.MalformedJSON)
         val rawJson = jsonElement.toString()
 
         val id = jsonElement["id"]?.jsonPrimitive?.contentOrNull
