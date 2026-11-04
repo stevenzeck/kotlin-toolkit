@@ -18,6 +18,7 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonContentPolymorphicSerializer
 import kotlinx.serialization.json.JsonElement
@@ -111,45 +112,28 @@ public value class MapValue(public val value: Map<String, Value> = emptyMap()) :
 // JSON conversions
 
 @InternalReadiumApi
-public fun Value.toJsonElement(): JsonElement = when (this) {
-    is NullValue -> JsonNull
-    is BooleanValue -> JsonPrimitive(value)
-    is IntValue -> JsonPrimitive(value)
-    is DoubleValue -> JsonPrimitive(value)
-    is StringValue -> JsonPrimitive(value)
-    is ListValue -> toJsonArray()
-    is MapValue -> toJsonObject()
-}
+public fun Value.toJsonElement(): JsonElement =
+    Json.encodeToJsonElement(Value.serializer(), this)
 
 @InternalReadiumApi
-public fun ListValue.toJsonArray(): JsonArray = JsonArray(value.map { it.toJsonElement() })
+public fun ListValue.toJsonArray(): JsonArray =
+    Json.encodeToJsonElement(ListValue.serializer(), this) as JsonArray
 
 @InternalReadiumApi
 public fun MapValue.toJsonObject(): JsonObject =
-    JsonObject(value.mapValues { (_, value) -> value.toJsonElement() })
+    Json.encodeToJsonElement(MapValue.serializer(), this) as JsonObject
 
 @InternalReadiumApi
-public fun JsonElement.toValue(): Value = when (this) {
-    is JsonNull -> NullValue
-    is JsonPrimitive -> {
-        if (isString) {
-            StringValue(content)
-        } else {
-            booleanOrNull?.let { BooleanValue(it) }
-                ?: longOrNull?.let { IntValue(it) }
-                ?: doubleOrNull?.let { DoubleValue(it) }
-                ?: StringValue(content)
-        }
-    }
-    is JsonArray -> toListValue()
-    is JsonObject -> toMapValue()
-}
+public fun JsonElement.toValue(): Value =
+    Json.decodeFromJsonElement(Value.serializer(), this)
 
 @InternalReadiumApi
-public fun JsonArray.toListValue(): ListValue = ListValue(map { it.toValue() })
+public fun JsonArray.toListValue(): ListValue =
+    Json.decodeFromJsonElement(ListValue.serializer(), this)
 
 @InternalReadiumApi
-public fun JsonObject.toMapValue(): MapValue = MapValue(mapValues { (_, element) -> element.toValue() })
+public fun JsonObject.toMapValue(): MapValue =
+    Json.decodeFromJsonElement(MapValue.serializer(), this)
 
 // Serializers (internal)
 
