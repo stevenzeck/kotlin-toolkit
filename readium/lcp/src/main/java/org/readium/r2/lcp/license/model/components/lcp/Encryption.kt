@@ -8,7 +8,6 @@ package org.readium.r2.lcp.license.model.components.lcp
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import org.json.JSONObject
 import org.readium.r2.lcp.license.model.LcpJson
 
@@ -21,6 +20,6 @@ public data class Encryption(
     @SerialName("user_key")
     val userKey: UserKey,
 ) {
-    @Deprecated("Use kotlinx.serialization to serialize the object")
+    @Deprecated("No longer available")
     val json: JSONObject get() = JSONObject(LcpJson.encodeToString(this))
 }

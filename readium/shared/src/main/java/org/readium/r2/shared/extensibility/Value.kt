@@ -4,7 +4,7 @@
  * available in the top-level LICENSE file of the project.
  */
 
-@file:OptIn(InternalReadiumApi::class, ExperimentalReadiumApi::class, ExperimentalSerializationApi::class)
+@file:OptIn(ExperimentalReadiumApi::class, ExperimentalSerializationApi::class)
 
 package org.readium.r2.shared.extensibility
 

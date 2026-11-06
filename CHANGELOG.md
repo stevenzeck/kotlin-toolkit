@@ -29,7 +29,7 @@ All notable changes to this project will be documented in this file. Take a look
 
 #### LCP
 
-* LCP data models now use `kotlinx.serialization` instead of `org.json`. Some constructor properties have changed or been removed as part of this migration. Deprecated shims have been provided where possible to ease migration.
+* LCP data models no longer expose `org.json` in their constructors. Some constructor properties have changed or been removed as part of this migration. Deprecated shims have been provided where possible to ease migration.
 
 #### Navigator
 

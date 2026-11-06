@@ -19,7 +19,7 @@ dependencies {
     implementation(libs.kotlin.reflect)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.datetime)
-    api(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.jsoup)
 
     // Tests

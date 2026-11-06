@@ -63,7 +63,7 @@ public fun List<Link>.allWithRel(rel: String, type: MediaType? = null): List<Lin
 private fun Link.matches(rel: String, mediaType: MediaType?): Boolean =
     this.rels.contains(rel) && (mediaType?.matches(this.mediaType) ?: true)
 
-public object LinkSerializer :
+internal object LinkSerializer :
     JsonTransformingSerializer<Link>(Link.generatedSerializer()) {
 
     override fun transformDeserialize(element: JsonElement): JsonElement {
@@ -114,7 +114,7 @@ public object LinkSerializer :
     }
 }
 
-public object RelSerializer :
+internal object RelSerializer :
     JsonTransformingSerializer<Set<String>>(SetSerializer(String.serializer())) {
 
     override fun transformDeserialize(element: JsonElement): JsonElement {

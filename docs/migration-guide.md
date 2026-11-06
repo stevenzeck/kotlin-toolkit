@@ -8,7 +8,7 @@ All migration steps necessary in reading apps to upgrade to major versions of th
 
 ### LCP Models Serialization Changes
 
-The LCP models (e.g., `LicenseDocument`, `StatusDocument`, `User`, `Link`) have been refactored to use `kotlinx.serialization` instead of `org.json`.
+The LCP models (e.g., `LicenseDocument`, `StatusDocument`, `User`, `Link`) have been refactored to no longer depend on `org.json`.
 
 - The `json: JSONObject` properties in data classes (like `User`, `Rights`, etc.) are now deprecated.
 - The `User.encrypted` property type has changed from `MutableList<String>` to `List<String>`.

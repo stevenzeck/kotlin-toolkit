@@ -7,8 +7,6 @@
  * LICENSE file present in the project repository where this source code is maintained.
  */
 
-@file:OptIn(ExperimentalReadiumApi::class)
-
 package org.readium.r2.shared.util.mediatype
 
 import android.os.Parcelable
@@ -23,7 +21,6 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import org.readium.r2.shared.ExperimentalReadiumApi
 
 /**
  * Represents a document format, identified by a unique RFC 6838 media type.
@@ -345,8 +342,7 @@ public class MediaType private constructor(
     }
 }
 
-@ExperimentalReadiumApi
-public object MediaTypeSerializer : KSerializer<MediaType> {
+internal object MediaTypeSerializer : KSerializer<MediaType> {
     override val descriptor: SerialDescriptor =
         PrimitiveSerialDescriptor("MediaType", PrimitiveKind.STRING)
 
